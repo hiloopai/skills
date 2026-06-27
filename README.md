@@ -38,18 +38,21 @@ hiloop whoami
 
 …or interactively, when a human is present: `hiloop login` (`--device` on a remote box).
 
-**3. Install the skills.**
+**3. Install the skills.** Full per-harness instructions are in [`SETUP.md`](SETUP.md). The short version:
 
-- **Claude Code (one line):**
+- **Claude Code:** `/plugin marketplace add hiloopai/skills` then `/plugin install hiloop@hiloop`.
+- **Codex, Cursor, Gemini CLI, Amp, Pi** — the cross-harness skills directory:
 
+  ```sh
+  git clone https://github.com/hiloopai/skills.git ~/.hiloop-skills
+  mkdir -p ~/.agents/skills
+  for s in ~/.hiloop-skills/skills/*/; do ln -sfn "$s" "$HOME/.agents/skills/$(basename "$s")"; done
   ```
-  /plugin marketplace add hiloopai/skills
-  /plugin install hiloop@hiloop
-  ```
 
-- **Any harness:** copy the `skills/` directory into the location your agent loads skills from (e.g.
-  `.claude/skills/`), or point your agent at this repo. `AGENTS.md` works anywhere the AGENTS.md
-  convention is supported.
+- **GitHub Copilot:** `gh skill install hiloopai/skills <skill>`.
+- **Gemini CLI (one line):** `gemini extensions install https://github.com/hiloopai/skills`.
+- **Anything else / fallback:** drop the root [`AGENTS.md`](AGENTS.md) into your project — it's the
+  universal, always-on convention (Windsurf, Aider via `--read`, and every harness above honor it).
 
 Then ask your agent to spin up a hiloop sandbox, fork it, and query the trace tree — the skills guide
 the rest.
