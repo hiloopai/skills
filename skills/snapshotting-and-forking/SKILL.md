@@ -22,12 +22,11 @@ state and compare them.
 
 ## Snapshot a sandbox
 
-Snapshotting is a mutation with an `idempotency-key`:
+Snapshotting is a create-style mutation; the `idempotency-key` is optional (supply your own to make a
+retry safe, or omit it and the server generates one):
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}/snapshots" -X post \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{ "contents": "SNAPSHOT_CONTENTS_FULL", "allowFallback": true }'
+hiloop api "/v1/sandboxes/${SANDBOX_ID}/snapshots" -X post -d '{ "contents": "SNAPSHOT_CONTENTS_FULL", "allowFallback": true }'
 ```
 
 It returns an **operation** — poll it until the snapshot completes. Then manage snapshots:
@@ -35,9 +34,7 @@ It returns an **operation** — poll it until the snapshot completes. Then manag
 ```sh
 hiloop api "/v1/snapshots?projectId=<project-id>"     # list
 hiloop api "/v1/snapshots/${SNAPSHOT_ID}"             # inspect
-hiloop api "/v1/snapshots/${SNAPSHOT_ID}:restore" -X post \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{ "projectId": "<project-id>" }'                # restore into a new sandbox
+hiloop api "/v1/snapshots/${SNAPSHOT_ID}:restore" -X post -d '{ "projectId": "<project-id>" }'                # restore into a new sandbox
 ```
 
 ## Fork a sandbox
@@ -46,9 +43,7 @@ Fork creates a child branch from a source sandbox. The child takes a position in
 its parent node, which becomes its `fork_path`:
 
 ```sh
-hiloop api "/v1/sandboxes/${SOURCE_SANDBOX_ID}:fork" -X post \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{ "projectId": "<project-id>" }'
+hiloop api "/v1/sandboxes/${SOURCE_SANDBOX_ID}:fork" -X post -d '{ "projectId": "<project-id>" }'
 ```
 
 Returns the new (child) sandbox plus an **operation** — poll until ready, then run divergent work in

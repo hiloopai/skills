@@ -28,7 +28,8 @@ hiloop projects create --slug default --name "Default"   # if none exists
 
 ## 2. Create the sandbox
 
-Creation is a mutation, so it takes an `idempotency-key` — reuse the same key to retry safely.
+Creation is a create-style mutation, so it **optionally** takes an `idempotency-key`. Supply one (and
+reuse it) to make a retry safe; omit it and the server generates one for you.
 
 ```sh
 hiloop api /v1/sandboxes -X post \
@@ -69,10 +70,10 @@ hiloop api /v1/runtime/capabilities
 
 ## 5. Delete
 
-Deleting is also an idempotent mutation:
+Deleting is idempotent by sandbox id, so it needs no idempotency key:
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}" -X delete -H "idempotency-key: $(uuidgen)"
+hiloop api "/v1/sandboxes/${SANDBOX_ID}" -X delete
 ```
 
 Always clean up sandboxes you created for a task unless told to keep them.
@@ -81,5 +82,6 @@ Always clean up sandboxes you created for a task unless told to keep them.
 
 - `-X post`/`-X put`/`-X delete` selects the method; the default is GET.
 - Pass `--output json` for raw response bodies you intend to parse; capture the `id` fields.
-- Every mutation needs a fresh `idempotency-key` per logical operation (`$(uuidgen)`); reuse the
-  *same* key only when retrying the *same* operation.
+- Create-style mutations (create, execute, snapshot, restore, fork) **optionally** take an
+  `idempotency-key`; supply your own (and reuse it) to make a retry safe, or omit it and the server
+  generates one. Delete and lifecycle operations need no key — they are idempotent by sandbox id.
