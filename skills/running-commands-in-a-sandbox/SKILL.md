@@ -17,12 +17,11 @@ boundary. From the CLI, use the `hiloop api` passthrough.
 ## Execute a command
 
 A command spec is a program, its arguments, and optionally environment, working directory, and a
-timeout. Execution is a mutation, so it takes an `idempotency-key`.
+timeout. Execution is a create-style mutation, so the `idempotency-key` is optional — supply your own
+to make a retry safe, or omit it and the server generates one.
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}:execute" -X post \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{
+hiloop api "/v1/sandboxes/${SANDBOX_ID}:execute" -X post -d '{
     "command": { "program": "python", "args": ["train.py", "--lr", "3e-4"] }
   }'
 ```
@@ -42,17 +41,13 @@ failed inside the sandbox — read stderr to diagnose, don't assume success.
 Archive a file from the sandbox filesystem into an **artifact**:
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}/files:to-artifact" -X post \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{ "path": "/workspace/results/report.json", "mediaType": "application/json" }'
+hiloop api "/v1/sandboxes/${SANDBOX_ID}/files:to-artifact" -X post -d '{ "path": "/workspace/results/report.json", "mediaType": "application/json" }'
 ```
 
 Restore an artifact into a sandbox file:
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}/files:from-artifact" -X put \
-  -H "idempotency-key: $(uuidgen)" \
-  -d '{ "artifactId": "<artifact-id>", "path": "/workspace/inputs/report.json" }'
+hiloop api "/v1/sandboxes/${SANDBOX_ID}/files:from-artifact" -X put -d '{ "artifactId": "<artifact-id>", "path": "/workspace/inputs/report.json" }'
 ```
 
 Both calls return **operations** — poll the operation (`GET /v1/operations/{id}`) before assuming the

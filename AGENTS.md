@@ -32,8 +32,9 @@ exist for writing application code that runs *inside* a sandbox, not for operati
    tenant if `whoami` shows org scope.
 3. **Treat mutations as async.** Create/execute/snapshot/fork return an **operation**; poll
    `GET /v1/operations/{id}` (or the resource) until ready — never assume immediate completion.
-4. **Use a fresh `idempotency-key` per mutation** (`$(uuidgen)`); reuse the same key only to retry the
-   same operation.
+4. **Idempotency keys are optional.** Create-style mutations (create, execute, snapshot, restore,
+   fork) accept an `idempotency-key` — supply your own (and reuse it) to make a retry safe, or omit it
+   and the server generates one. Delete and lifecycle ops need no key; they are idempotent by id.
 5. **Clean up** sandboxes you created unless told to keep them.
 
 ## The skills
