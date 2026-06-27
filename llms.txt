@@ -1,0 +1,26 @@
+# hiloop skills
+
+> Open-source Agent Skills that teach AI agents to operate hiloop — isolated, forkable agent sandboxes
+> with tree-native observability. The skills drive hiloop through the `hiloop` CLI and follow the open
+> Agent Skills standard, so they work across harnesses.
+
+## Start here
+
+- [AGENTS.md](AGENTS.md): whole-product orientation — the interface, the always-in-order rules, the canonical end-to-end loop.
+
+## Skills
+
+- [authenticating](skills/authenticating/SKILL.md): credentials (HILOOP_API_KEY, hiloop login), whoami, org-vs-tenant scope, key management.
+- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): create / poll-ready / delete sandboxes; projects, images, resources, idempotency.
+- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): execute commands, read exit code + stdout/stderr, move files via artifacts.
+- [snapshotting-and-forking](skills/snapshotting-and-forking/SKILL.md): snapshot state, fork into divergent branches identified by fork_path.
+- [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run, structured telemetry query, fork_path scoping, branch-diff.
+
+## Reference
+
+- [QuerySpec reference](skills/querying-observability-trees/references/query-spec.md): full structured telemetry query — filters, breakdowns, calculations, columns.
+
+## More
+
+- hiloop docs: https://docs.hiloop.ai
+- hiloop docs machine index: https://docs.hiloop.ai/llms.txt

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "hiloop",
+  "displayName": "hiloop",
+  "description": "Operate hiloop from your agent: authenticate, create and fork sandboxes, run commands, and query fork-tree telemetry via the hiloop CLI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "hiloop",
+    "url": "https://hiloop.ai"
+  },
+  "homepage": "https://docs.hiloop.ai",
+  "repository": "https://github.com/hiloopai/skills",
+  "license": "Apache-2.0",
+  "keywords": ["hiloop", "sandbox", "agents", "observability", "fork"]
+}
