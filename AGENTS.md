@@ -42,8 +42,8 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | Skill | Use it to |
 |---|---|
 | `authenticating` | Set up credentials, verify identity, manage scope and keys |
-| `creating-sandboxes` | Create / inspect / delete sandboxes; projects, images, resources |
-| `running-commands-in-a-sandbox` | Execute commands; move files in/out via artifacts |
+| `creating-sandboxes` | Create / inspect / delete sandboxes; projects, bring-your-own images, resources, capabilities |
+| `running-commands-in-a-sandbox` | Run commands (quick or interactive); stream + steer long jobs; move files in/out via artifacts |
 | `snapshotting-and-forking` | Snapshot state and fork into divergent branches |
 | `querying-observability-trees` | Capture a run and query/diff its fork-tree telemetry |
 
