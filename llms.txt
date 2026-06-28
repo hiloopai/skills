@@ -11,8 +11,8 @@
 ## Skills
 
 - [authenticating](skills/authenticating/SKILL.md): credentials (HILOOP_API_KEY, hiloop login), whoami, org-vs-tenant scope, key management.
-- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): create / poll-ready / delete sandboxes; projects, images, resources, idempotency.
-- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): execute commands, read exit code + stdout/stderr, move files via artifacts.
+- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): create / poll-ready / delete sandboxes; projects, bring-your-own images, resources, capabilities, idempotency.
+- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): quick `:execute`, start interactive `executions`, stream output (SSE) + steer with stdin/signals, read exit code, move files via artifacts.
 - [snapshotting-and-forking](skills/snapshotting-and-forking/SKILL.md): snapshot state, fork into divergent branches identified by fork_path.
 - [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run, structured telemetry query, fork_path scoping, branch-diff.
 

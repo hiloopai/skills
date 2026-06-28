@@ -13,8 +13,8 @@ definitions every turn.
 | Skill | Use it to |
 |---|---|
 | [`authenticating`](skills/authenticating/SKILL.md) | Set up credentials, verify identity, manage scope and keys |
-| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes |
-| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Execute commands; move files in/out |
+| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; bring your own image, request resources |
+| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands; stream + steer long-running processes; move files in/out |
 | [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot state and fork into branches |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query/diff its fork-tree telemetry |
 
