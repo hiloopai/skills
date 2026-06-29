@@ -10,9 +10,11 @@ self-contained; read the one that matches the task.
 
 ## The interface: the `hiloop` CLI
 
-Drive hiloop through the `hiloop` CLI — it is the supported agent interface. The CLI wraps a typed
-control-plane API; for any route without a dedicated subcommand, use the generic authenticated
-passthrough:
+Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
+groups for the common work — `hiloop sandbox` (lifecycle, exec, fork, snapshot, interactive
+executions), `hiloop secret`, `hiloop telemetry` (query/tail/branch-diff), `hiloop annotate` /
+`annotation-schema`, `hiloop run`, `hiloop login` — and a generic authenticated passthrough for any
+route without one:
 
 ```sh
 hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [--output json]
@@ -26,8 +28,8 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 
 ## Always, in order
 
-1. **Authenticate and verify.** Set `HILOOP_API_KEY` (headless) or `hiloop login` (interactive), then
-   run `hiloop whoami` before anything else. → `authenticating`
+1. **Authenticate and verify.** `hiloop login` is the default; use `HILOOP_API_KEY` only when headless
+   / in CI. Then run `hiloop whoami` before anything else. → `authenticating`
 2. **Be tenant-scoped for runtime work.** Sandboxes/snapshots/forks are tenant-scoped; switch into a
    tenant if `whoami` shows org scope.
 3. **Treat mutations as async.** Create/execute/snapshot/fork return an **operation**; poll
@@ -41,24 +43,30 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 
 | Skill | Use it to |
 |---|---|
-| `authenticating` | Set up credentials, verify identity, manage scope and keys |
+| `authenticating` | Sign in with `hiloop login` (or a key), verify identity, manage scope and keys |
 | `creating-sandboxes` | Create / inspect / delete sandboxes; projects, bring-your-own images, resources, capabilities |
 | `running-commands-in-a-sandbox` | Run commands (quick or interactive); stream + steer long jobs; move files in/out via artifacts |
 | `snapshotting-and-forking` | Snapshot state and fork into divergent branches |
-| `querying-observability-trees` | Capture a run and query/diff its fork-tree telemetry |
+| `managing-secrets` | Give a sandbox a credential it uses but never sees (the secret broker) |
+| `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
+| `annotating-runs` | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 
 ## Canonical end-to-end loop
 
 ```
-whoami → (tenant switch) → create project → create sandbox → poll ready →
-execute command → snapshot → fork into branches → run divergent work →
+login (or HILOOP_API_KEY) → whoami → (tenant switch) → create project →
+create sandbox → poll ready → run command → snapshot → fork into branches →
+run divergent work (key via secret broker) → annotate outcomes →
 query per fork_path / branch-diff → delete sandbox
 ```
 
 ## Secrets
 
-Never print, log, or commit `HILOOP_API_KEY` or any `hil_…` value. Pass credentials through the
-environment; never bake them into a script or sandbox image.
+Two distinct things. (1) Your **hiloop credential** — never print, log, or commit `HILOOP_API_KEY` or
+any `hil_…` value; pass it through the environment or `hiloop login`. (2) A **third-party credential a
+sandbox needs** (a model-provider key, an API token) — never bake it into a script, image, or
+snapshot; store it with the secret broker and bind it with `hiloop run --secret` so the agent uses it
+without seeing it. → `managing-secrets`
 
 ## More
 

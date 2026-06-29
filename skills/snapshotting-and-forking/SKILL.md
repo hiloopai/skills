@@ -2,12 +2,12 @@
 name: snapshotting-and-forking
 description: >-
   Snapshot a hiloop sandbox and fork it to explore multiple paths from a shared state. Covers
-  creating/listing/restoring snapshots and forking a sandbox into divergent branches identified by
-  fork_path, the core primitive behind tree-native experimentation. Use when asked to snapshot, save,
-  checkpoint, branch, or fork a sandbox, or to explore alternative agent paths from a common starting
-  point.
+  `hiloop sandbox snapshot` / `restore` / `fork`, listing snapshots, and forking into divergent
+  branches identified by fork_path — the core primitive behind tree-native experimentation. Use when
+  asked to snapshot, save, checkpoint, branch, or fork a sandbox, or to explore alternative agent
+  paths from a common starting point.
 metadata:
-  version: 0.1.0
+  version: 0.3.0
 ---
 
 # Snapshotting and forking
@@ -22,43 +22,44 @@ state and compare them.
 
 ## Snapshot a sandbox
 
-Snapshotting is a create-style mutation; the `idempotency-key` is optional (supply your own to make a
-retry safe, or omit it and the server generates one):
+Snapshotting is asynchronous; `--wait` blocks until it completes and prints the snapshot id:
 
 ```sh
-hiloop api "/v1/sandboxes/${SANDBOX_ID}/snapshots" -X post -d '{ "contents": "SNAPSHOT_CONTENTS_FULL", "allowFallback": true }'
+hiloop sandbox snapshot <sandbox-id> --wait
 ```
 
-It returns an **operation** — poll it until the snapshot completes. Then manage snapshots:
+List and restore snapshots (listing is over the passthrough; restore has a dedicated command):
 
 ```sh
-hiloop api "/v1/snapshots?projectId=<project-id>"     # list
-hiloop api "/v1/snapshots/${SNAPSHOT_ID}"             # inspect
-hiloop api "/v1/snapshots/${SNAPSHOT_ID}:restore" -X post -d '{ "projectId": "<project-id>" }'                # restore into a new sandbox
+hiloop api "/v1/snapshots?projectId=<project-id>"            # list
+hiloop api "/v1/snapshots/<snapshot-id>"                     # inspect
+hiloop sandbox restore <snapshot-id> --project <project-id> --wait   # restore into a new sandbox
 ```
 
 ## Fork a sandbox
 
-Fork creates a child branch from a source sandbox. The child takes a position in the fork tree under
-its parent node, which becomes its `fork_path`:
+Fork creates a child branch from a source sandbox. The child inherits the source's filesystem (from
+its snapshot) and takes a fresh position in the fork tree under its parent node, which becomes its
+`fork_path`:
 
 ```sh
-hiloop api "/v1/sandboxes/${SOURCE_SANDBOX_ID}:fork" -X post -d '{ "projectId": "<project-id>" }'
+hiloop sandbox fork <source-sandbox-id> --project <project-id> --name arm-feature-eng --wait
 ```
 
-Returns the new (child) sandbox plus an **operation** — poll until ready, then run divergent work in
-each branch.
+Forking is asynchronous (`--wait` to block). The child's resources/image default to the server
+defaults / genesis base unless you set `--cpus` / `--memory-mb` / `--disk-mb` / `--image`;
+`--continuity filesystem` (the default) carries the filesystem across.
 
-> Runtime fork creation is capability-gated and provider-specific. Snapshot endpoints and
-> branch-diff queries are public. So make branch *comparisons* depend on the run id and `fork_path`
+> Runtime fork creation is capability-gated and provider-specific. Snapshot/restore and branch-diff
+> queries are broadly available. So make branch *comparisons* depend on the run id and `fork_path`
 > (see `querying-observability-trees`), not on a particular fork mechanism.
 
 ## The pattern: explore N paths from one state
 
 1. Get a sandbox to the state you want to branch from.
-2. Snapshot it (your shared baseline).
+2. Snapshot it (your shared baseline) — also a reusable "prebuilt image" you can restore later.
 3. Fork it into N children — `/0/0`, `/0/1`, … — one per approach.
-4. Run a different attempt in each branch.
+4. Run a different attempt in each branch (see `running-commands-in-a-sandbox`).
 5. **Query per `fork_path`** to compare them, or **branch-diff** two branches to see exactly what one
    did that another didn't (see `querying-observability-trees`).
 

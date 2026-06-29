@@ -12,11 +12,13 @@ definitions every turn.
 
 | Skill | Use it to |
 |---|---|
-| [`authenticating`](skills/authenticating/SKILL.md) | Set up credentials, verify identity, manage scope and keys |
+| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage scope and keys |
 | [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; bring your own image, request resources |
 | [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands; stream + steer long-running processes; move files in/out |
 | [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot state and fork into branches |
-| [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query/diff its fork-tree telemetry |
+| [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a sandbox a credential it uses but never sees (the secret broker) |
+| [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
+| [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 
 [`AGENTS.md`](AGENTS.md) is the whole-product orientation an agent reads first.
 
@@ -29,14 +31,14 @@ curl -fsSL https://hiloop.ai/install.sh | sh
 hiloop --version
 ```
 
-**2. Authenticate** — headless (an agent / CI):
+**2. Authenticate** — `hiloop login` is the default (`--device` on a remote box with no local browser):
 
 ```sh
-export HILOOP_API_KEY="hil_…"
+hiloop login
 hiloop whoami
 ```
 
-…or interactively, when a human is present: `hiloop login` (`--device` on a remote box).
+…or headless (an agent / CI), skip the browser with a key: `export HILOOP_API_KEY="hil_…"`.
 
 **3. Install the skills.** Full per-harness instructions are in [`SETUP.md`](SETUP.md). The short version:
 
@@ -59,9 +61,9 @@ the rest.
 
 ## Develop
 
-These skills are validated end-to-end against hiloop on every change (see `scripts/` and CI). Keep
-skill bodies under ~500 lines and push dense schemas into `references/`, per the Agent Skills
-best practices. Commands here mirror the published guides at https://docs.hiloop.ai.
+These skills mirror the `hiloop` CLI surface and the published guides at https://docs.hiloop.ai. Keep
+skill bodies under ~500 lines and push dense schemas into `references/`, per the Agent Skills best
+practices. When the CLI changes, update the matching skill in the same change.
 
 ## License
 
