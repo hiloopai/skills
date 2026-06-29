@@ -10,15 +10,17 @@
 
 ## Skills
 
-- [authenticating](skills/authenticating/SKILL.md): credentials (HILOOP_API_KEY, hiloop login), whoami, org-vs-tenant scope, key management.
-- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): create / poll-ready / delete sandboxes; projects, bring-your-own images, resources, capabilities, idempotency.
-- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): quick `:execute`, start interactive `executions`, stream output (SSE) + steer with stdin/signals, read exit code, move files via artifacts.
-- [snapshotting-and-forking](skills/snapshotting-and-forking/SKILL.md): snapshot state, fork into divergent branches identified by fork_path.
-- [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run, structured telemetry query, fork_path scoping, branch-diff.
+- [authenticating](skills/authenticating/SKILL.md): sign in with hiloop login (default) or HILOOP_API_KEY (headless/CI), whoami, org-vs-tenant scope, key management.
+- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): hiloop sandbox create / poll-ready / delete; projects, bring-your-own images, resources, capabilities, capture.
+- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): quick `hiloop sandbox exec`, interactive `start` + `stream` (SSE), steer with `send-input` (stdin/signals) + `kill`, read exit code, move files via artifacts.
+- [snapshotting-and-forking](skills/snapshotting-and-forking/SKILL.md): hiloop sandbox snapshot / restore / fork into divergent branches identified by fork_path.
+- [managing-secrets](skills/managing-secrets/SKILL.md): hiloop secret set/list/rotate/revoke + hiloop run --secret; a write-only credential a sandbox uses but never sees (the broker).
+- [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run, query telemetry with read-only SQL over the events table, fork_path scoping, telemetry tail, branch-diff.
+- [annotating-runs](skills/annotating-runs/SKILL.md): hiloop annotation-schema + annotate / annotate-range; structured outcome/score judgments on a run you can filter on.
 
 ## Reference
 
-- [QuerySpec reference](skills/querying-observability-trees/references/query-spec.md): full structured telemetry query — filters, breakdowns, calculations, columns.
+- [events SQL reference](skills/querying-observability-trees/references/events-sql.md): the read-only SQL query surface — the events table columns, query rules, example SELECTs.
 
 ## More
 
