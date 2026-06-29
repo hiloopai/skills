@@ -65,6 +65,11 @@ These skills mirror the `hiloop` CLI surface and the published guides at https:/
 skill bodies under ~500 lines and push dense schemas into `references/`, per the Agent Skills best
 practices. When the CLI changes, update the matching skill in the same change.
 
+`scripts/check-skills.sh` is a lightweight drift guard (run in CI on every change and weekly): it
+checks each skill's frontmatter/length/links and — when a `hiloop` binary is on `PATH` — that every
+`hiloop …` command a skill mentions still exists, derived live from `hiloop --help` (no hardcoded
+list). Run it locally with `./scripts/check-skills.sh`.
+
 ## License
 
 Apache-2.0 (see `LICENSE`).
