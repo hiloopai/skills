@@ -1,0 +1,35 @@
+name: check-skills
+
+# Lightweight drift guard: validate every SKILL.md's structure, and — when the
+# hiloop CLI is installable — that every `hiloop …` command the skills mention
+# still exists in the CLI (parsed live from `hiloop --help`). Runs on changes
+# and weekly, so CLI drift is caught even when nobody touches this repo.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 14 * * 1" # Mondays 14:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Best-effort: install the hiloop CLI so the command-existence layer runs.
+      # If the installer isn't reachable yet, the step is skipped and the script
+      # falls back to structure-only checks (it self-detects a missing `hiloop`).
+      - name: Install hiloop CLI (best-effort)
+        continue-on-error: true
+        run: |
+          curl -fsSL https://hiloop.ai/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check skills
+        run: ./scripts/check-skills.sh
