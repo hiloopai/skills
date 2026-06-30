@@ -1,7 +1,7 @@
 # Querying the `events` table (read-only SQL)
 
 `hiloop telemetry query` runs a **read-only `SELECT`** against a single denormalized table, `events`,
-holding every captured telemetry event. The pragmatic flags (`--run-id`, `--signal`, `--fork-path`,
+holding every captured telemetry event. The pragmatic flags (`--run-id`, `--signal`, `--lineage-path`,
 `--since`/`--until`, `--limit`) build a `SELECT * FROM events WHERE …` for you; `--sql` sends an
 arbitrary `SELECT` (inline, `@file`, or `-`/`@-` for stdin). There is one query surface — SQL — and
 no structured spec.
@@ -27,8 +27,8 @@ Every query runs through a gateway that:
 
 - `event_id` — unique event id.
 - `run_id` — the run (session) the event belongs to.
-- `fork_node_id` — the fork-tree node the event was emitted at.
-- `fork_path` — the fork-tree path (e.g. `/0/1`); breakdown or scope by this to compare branches.
+- `lineage_path` — the run-lineage path: a dotted sequence of run ULIDs from the root run to this
+  event's run (e.g. `01K6Z….01K70…`); breakdown or scope by this to compare branches.
 - `ts_wall_ns` — wall-clock timestamp in nanoseconds (what `--since`/`--until` match against).
 - `event_time` — the same instant as a SQL timestamp (use for `date_trunc`, ordering).
 - `signal` — event kind: `llm`, `tool`, `mcp`, `stdio`, `http`, `annotation`, … (the most common
@@ -60,20 +60,20 @@ Scope to one branch and its descendants:
 ```sql
 SELECT * FROM events
 WHERE run_id = '01K6Z…'
-  AND (fork_path = '/0/1' OR fork_path LIKE '/0/1/%')
+  AND (lineage_path = '01K6Z….01K70…' OR lineage_path LIKE '01K6Z….01K70….%')
 ```
 
 Cost and token totals per branch:
 
 ```sql
-SELECT fork_path,
+SELECT lineage_path,
        count(*)               AS calls,
        sum(cost_usd)          AS cost_usd,
        sum(prompt_tokens)     AS prompt_tokens,
        sum(completion_tokens) AS completion_tokens
 FROM events
 WHERE run_id = '01K6Z…' AND signal = 'llm'
-GROUP BY fork_path
+GROUP BY lineage_path
 ORDER BY cost_usd DESC
 ```
 
@@ -92,14 +92,14 @@ Failed HTTP calls in one branch:
 SELECT ts_wall_ns, http_host, http_target, http_status_code
 FROM events
 WHERE run_id = '01K6Z…' AND signal = 'http' AND http_status_code >= 400
-  AND (fork_path = '/0/1' OR fork_path LIKE '/0/1/%')
+  AND (lineage_path = '01K6Z….01K70…' OR lineage_path LIKE '01K6Z….01K70….%')
 ORDER BY ts_wall_ns
 ```
 
 Only the winning branches, by annotation:
 
 ```sql
-SELECT fork_path, score, outcome
+SELECT lineage_path, score, outcome
 FROM events
 WHERE run_id = '01K6Z…' AND signal = 'annotation'
       AND outcome = 'pass' AND score > 0.9
