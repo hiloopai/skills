@@ -49,9 +49,10 @@ Every query runs through a gateway that:
 **Tracing**: `trace_id`, `span_id`, `parent_span_id`.
 
 **Annotations** (`signal = 'annotation'`; see the `annotating-runs` skill): `target_event_id` (the
-event judged), `score` (typed numeric, e.g. an eval score), `outcome` (categorical, e.g. `pass`/
-`fail`), `range_start_ns` / `range_end_ns` (for range annotations), `annotator_kind` (`human` / `llm`
-/ `code` / `api`).
+event judged) and `range_start_ns` / `range_end_ns` (for range annotations) are structural columns.
+The judgment payload itself is tenant-defined and lives in `attributes_json` — read any field by name
+with `hiloop_json_get(attributes_json, '$.field')` (e.g. an eval `score`, a `pass`/`fail` `outcome`,
+an `annotator`). Promoted fields read fast from a typed column transparently.
 
 ## Patterns
 
@@ -99,10 +100,13 @@ ORDER BY ts_wall_ns
 Only the winning branches, by annotation:
 
 ```sql
-SELECT lineage_path, score, outcome
+SELECT lineage_path,
+       CAST(hiloop_json_get(attributes_json, '$.score') AS DOUBLE) AS score,
+       hiloop_json_get(attributes_json, '$.outcome') AS outcome
 FROM events
 WHERE run_id = '01K6Z…' AND signal = 'annotation'
-      AND outcome = 'pass' AND score > 0.9
+      AND hiloop_json_get(attributes_json, '$.outcome') = 'pass'
+      AND CAST(hiloop_json_get(attributes_json, '$.score') AS DOUBLE) > 0.9
 ORDER BY score DESC
 ```
 
