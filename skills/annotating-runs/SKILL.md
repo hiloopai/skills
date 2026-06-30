@@ -17,7 +17,7 @@ metadata:
 An **annotation** is a structured judgment stamped onto a point (or window) of a run's telemetry: an
 experiment's `worked`/`failed` outcome, an eval `score`, a human's verdict on a branch. Annotations
 land in the **same `events` table** as everything else (signal `annotation`), carry the same
-`(run_id, fork_node_id, fork_path)` fork identity as the events they judge, and expose typed `score`
+`(run_id, lineage_path)` run-lineage identity as the events they judge, and expose typed `score`
 and `outcome` columns — so "show me only the branches that worked" is one SQL query later (see
 `querying-observability-trees`).
 
@@ -54,8 +54,7 @@ aggregate on:
 ```sh
 hiloop annotate \
   --run-id "$HILOOP_RUN_ID" \
-  --fork-node-id "$HILOOP_FORK_NODE_ID" \
-  --fork-path "$HILOOP_FORK_PATH" \
+  --lineage-path "$HILOOP_LINEAGE_PATH" \
   --schema experiment \
   --data '{"outcome":"worked","metric":0.9833,"note":"encoding arm"}' \
   --outcome worked \
@@ -65,9 +64,9 @@ hiloop annotate \
 
 - `--annotator-kind` is who is judging: `human`, `llm`, `code`, `api` (default `human`).
 - `--target-event-id <id>` pins the annotation to one event; omit it for a run/branch-level judgment.
-- Inside a **captured run**, the fork identity is already in the environment as `HILOOP_RUN_ID`,
-  `HILOOP_FORK_NODE_ID`, and `HILOOP_FORK_PATH` — which is exactly how an in-sandbox experiment
-  **self-annotates** its own start/end and result.
+- Inside a **captured run**, the run-lineage identity is already in the environment as `HILOOP_RUN_ID`
+  and `HILOOP_LINEAGE_PATH` — which is exactly how an in-sandbox experiment **self-annotates** its own
+  start/end and result.
 
 ## 3. Annotate a time window
 
@@ -76,7 +75,7 @@ inclusive wall-clock nanosecond bounds (same flags as `annotate`, plus the windo
 
 ```sh
 hiloop annotate-range \
-  --run-id "$HILOOP_RUN_ID" --fork-node-id "$HILOOP_FORK_NODE_ID" \
+  --run-id "$HILOOP_RUN_ID" --lineage-path "$HILOOP_LINEAGE_PATH" \
   --schema experiment --data '{"outcome":"failed"}' --outcome failed \
   --range-start-ns 1750000000000000000 --range-end-ns 1750000060000000000
 ```
@@ -88,7 +87,7 @@ filtering a fan-out tree down to the good branches:
 
 ```sh
 hiloop telemetry query --sql "
-  SELECT fork_path, score, outcome
+  SELECT lineage_path, score, outcome
   FROM events
   WHERE run_id = '$HILOOP_RUN_ID' AND signal = 'annotation'
         AND outcome = 'worked' AND score > 0.95

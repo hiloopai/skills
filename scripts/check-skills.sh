@@ -29,8 +29,9 @@ err() { printf 'FAIL: %s\n' "$1" >&2; fail=1; }
 note() { printf '%s\n' "$1"; }
 
 MAX_LINES=500
-# Tokens that must never reappear (the dropped QuerySpec query surface, #737).
-BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_'
+# Tokens that must never reappear: the dropped QuerySpec query surface, and the
+# retired fork-node/fork-path vocabulary (replaced by run-lineage / lineage_path).
+BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id'
 
 # --- Layer 1: structure -------------------------------------------------------
 

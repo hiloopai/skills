@@ -57,7 +57,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 login (or HILOOP_API_KEY) → whoami → (tenant switch) → create project →
 create sandbox → poll ready → run command → snapshot → fork into branches →
 run divergent work (key via secret broker) → annotate outcomes →
-query per fork_path / branch-diff → delete sandbox
+query per lineage_path / branch-diff → delete sandbox
 ```
 
 ## Secrets
