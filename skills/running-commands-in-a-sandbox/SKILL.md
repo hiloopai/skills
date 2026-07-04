@@ -92,6 +92,13 @@ To stop an execution outright, signal it directly (`terminate` is the default):
 hiloop sandbox kill "$EXEC_ID" --signal kill
 ```
 
+### Interactive shell
+
+For hands-on exploration, `hiloop sandbox shell <sandbox-id>` attaches an interactive shell: it
+starts a durable execution, streams output, and forwards your stdin (with terminal controls when a
+PTY is requested). Not SSH — both directions are recorded like any other execution. Prefer
+`exec`/`start` for anything scripted.
+
 ## Errors, retries, and polling backoff
 
 - **Distinguish the two failure layers.** A non-zero CLI/transport failure (auth, not-found, sandbox
