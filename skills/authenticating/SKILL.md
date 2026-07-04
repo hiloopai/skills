@@ -57,20 +57,26 @@ Whichever path you took, confirm it resolves to an identity before doing anythin
 hiloop whoami
 ```
 
-This calls `GET /v1/whoami` and prints the org, tenant, user, scope, and auth method the credential
-maps to. **Always run `whoami` first** — it is the cheapest way to confirm auth and scope are correct
-before a real operation. If it fails with 401/unauthenticated, the credential is missing, malformed,
-expired, or revoked.
+This calls `GET /v1/whoami` and prints the identity the credential resolves to: the **principal** —
+its `kind` (`user` or `service_account`), id, and the API key's id and name (`email` too for a user
+key) — and the **tenant** (id + slug). `--output json` prints exactly
+`{"principal": {…}, "tenant": {…}}`. **Always run `whoami` first** — it is the cheapest way to
+confirm auth and scope are correct before a real operation. If it fails with 401/unauthenticated,
+the credential is missing, malformed, expired, or revoked.
 
 ## Minting a scoped key
 
 If you have an authenticated session and need a key for an unattended agent to run with, mint one
-scoped least-privilege and hand it over once (the secret is shown only at creation):
+scoped least-privilege and hand it over once (the secret is shown only at creation). The key's
+**name is its identity everywhere**: it is what `whoami` reports as `key_name` and what the
+`PRINCIPAL` column of `hiloop runs list` / `tree` / `show` renders for everything the key writes —
+so name keys for who acts with them (`laptop`, `ci-bot`):
 
 ```sh
-hiloop keys create --name "agent-ci" --kind service
-hiloop keys list                         # metadata only; never reveals the secret
-hiloop keys revoke <key-id>              # revoke when done
+hiloop keys create --name agent-ci               # acts as the tenant (--kind service_account, the default)
+hiloop keys create --name laptop --kind user     # acts on behalf of you
+hiloop keys list                                 # metadata only; never reveals the secret
+hiloop keys revoke <key-id>                      # revoke when done
 ```
 
 Prefer a **tenant-scoped** key for runtime/sandbox work. Treat a leaked key as compromised and revoke

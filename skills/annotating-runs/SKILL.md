@@ -1,33 +1,33 @@
 ---
 name: annotating-runs
 description: >-
-  Attach durable, structured judgments to a run's telemetry — an experiment's outcome, an eval score,
-  a human verdict — that you can later filter and aggregate on. Covers `hiloop annotation-schema`
-  (register the named JSON-Schema the payload is validated against, and promote the fields you query),
-  `hiloop annotate` (a point annotation on one event), and `hiloop annotate-range` (a time window). An
-  annotation's payload is tenant-defined — promote the fields you query into typed columns; everything
-  stays in the JSON payload. Use when asked to annotate, label, mark, score, or record a verdict on a
-  run, experiment, or branch — especially so experiments can self-annotate worked/failed + a metric.
+  Attach durable, structured judgments to hiloop telemetry — an experiment's outcome, an eval score,
+  a metric reading, a human verdict — that you can later filter and aggregate on. Covers
+  `hiloop annotation-schema` (register the named JSON-Schema the payload is validated against, and
+  promote the fields you query) and the one `hiloop annotate` verb: a whole run (`--run`), one event
+  (`--target-event`), a time window (`--range`), or a project (`--project`, run-less cross-run
+  knowledge). Promoted fields become named columns of the schema's `ann_<schema>` query view. Use
+  when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
+  or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # Annotating runs
 
-An **annotation** is a structured judgment stamped onto a point (or window) of a run's telemetry: an
-experiment's `worked`/`failed` outcome, an eval `score`, a human's verdict on a branch. Annotations
-land in the **same `events` table** as everything else (signal `annotation`) and carry the same
-`(run_id, lineage_path)` run-lineage identity as the events they judge.
+An **annotation** is a structured judgment stamped onto a run, onto an event or time window within
+it, or onto a project: an experiment's `worked`/`failed` outcome, an eval `score`, a metric reading,
+a human's verdict on a branch. Annotations land in the **same `events` table** as everything else
+(signal `annotation`) and carry the same `(run_id, lineage_path)` run-lineage identity as the events
+they judge.
 
 An annotation's payload is **entirely tenant-defined** — there are no built-in fields. You decide
-what an annotation carries (a score, a verdict, an annotator, a note, a nested object) by registering
-a schema for it. To make a field fast to filter and sort on across many runs, **promote** it into a
-typed column at register time; promoted or not, every field stays in the payload and is read back by
-name — so "show me only the branches that worked" is one SQL query later (see
+what an annotation carries (a score, a verdict, a metrics object, a note) by registering a schema
+for it. To make a field fast to filter and sort on across many runs, **promote** it at register
+time: promoted fields become named columns of the schema's auto-created query view,
+`ann_<schema-name>`; promoted or not, every field stays in the payload and is read back by name —
+so "show me only the branches that worked" is one SQL query later (see
 `querying-observability-trees`).
-
-> Annotations go to the telemetry gateway. Set `HILOOP_TELEMETRY_ENDPOINT` (or pass `--endpoint`);
-> your hiloop credential is resolved the usual way (the `authenticating` skill).
 
 ## 1. Register a schema (once)
 
@@ -54,61 +54,66 @@ hiloop annotation-schema register --name experiment --json-schema '{
 ```
 
 `--json-schema` takes inline JSON, `@file`, or `-` (stdin). An unseen name starts at version 1; an
-existing name adds the next version after a backward-compatibility check. Manage them with
-`hiloop annotation-schema list` / `get <name>` / `archive <name>`.
+existing name adds the next version after a backward-compatibility check. Registering also creates
+the schema's query view, `ann_experiment`, with the promoted fields as named columns. Manage schemas
+with `hiloop annotation-schema list` / `get <name>` / `archive <name>`.
 
-## 2. Annotate a point
+## 2. Annotate a run (or one event, or a window)
 
-`hiloop annotate` stamps one annotation. Everything the annotation carries goes in the payload
-(`--data` for a flat object of scalars, or `--attributes-json` for a nested payload); it is validated
-against `--schema`. There are no special value flags — `score`, `outcome`, and `annotator` are just
-payload fields (the ones you promoted lift into typed columns for fast filter/sort while staying in
-the JSON):
+`hiloop annotate` stamps one annotation. Everything it carries goes in `--data` — a JSON object used
+verbatim as the payload (nested objects and arrays preserved; inline, `@file`, or `-` for stdin),
+validated against `--schema`. There are no special value flags — `score`, `outcome`, and `annotator`
+are just payload fields:
 
 ```sh
 hiloop annotate \
-  --run-id "$HILOOP_RUN_ID" \
-  --lineage-path "$HILOOP_LINEAGE_PATH" \
+  --run "$HILOOP_RUN_ID" \
   --schema experiment \
   --data '{"outcome":"worked","score":0.9833,"annotator":"code","note":"encoding arm"}'
 ```
 
-- `--target-event-id <id>` pins the annotation to one event; omit it for a run/branch-level judgment.
-- Use `--attributes-json` (inline JSON, `@file`, or `-`) when the payload nests objects or arrays;
-  it preserves structure verbatim and is mutually exclusive with `--data`.
-- Inside a **captured run**, the run-lineage identity is already in the environment as `HILOOP_RUN_ID`
-  and `HILOOP_LINEAGE_PATH` — which is exactly how an in-sandbox experiment **self-annotates** its own
-  start/end and result.
+- Inside a **captured run**, the run id is already in the environment as `HILOOP_RUN_ID` — which is
+  exactly how an in-sandbox experiment **self-annotates** its own result. **Metrics are recorded the
+  same way** — there is no stdout-metric convention; a training run annotates its own readings as it
+  goes (`--data '{"metrics":{"val_bpb":0.9932},"step":1200}'`).
+- `--target-event <event-id>` pins the annotation to one event; omit it for a run-level judgment.
+- `--range <start>..<end>` targets a time window instead — each endpoint an RFC 3339 timestamp
+  (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query
+  columns).
+- `--lineage-path` stamps the annotation at one subtree of the run; the default is the run root.
+- **Correction = a new annotation.** Readers take the latest per (run, schema) — you never edit one
+  in place.
 
-## 3. Annotate a time window
+## 3. Annotate a project — run-less, cross-run knowledge
 
-When the judgment is about a span of activity rather than one event, use `hiloop annotate-range` with
-inclusive wall-clock nanosecond bounds (same payload flags as `annotate`, plus the window):
+A judgment that outlives any one run — "this approach dead-ends", a negative result, a promoted
+winner — goes on the **project** instead of a run:
 
 ```sh
-hiloop annotate-range \
-  --run-id "$HILOOP_RUN_ID" --lineage-path "$HILOOP_LINEAGE_PATH" \
-  --schema experiment --data '{"outcome":"failed"}' \
-  --range-start-ns 1750000000000000000 --range-end-ns 1750000060000000000
+hiloop annotate --project default --schema experiment \
+  --data '{"outcome":"failed","note":"tokenizer swap: no effect on val_bpb"}'
 ```
+
+Project annotations are durable cross-run knowledge: they survive every sandbox and show up in the
+same query surface.
 
 ## 4. Filter on what you annotated
 
 Annotations are queryable immediately. The payoff — "fan out is cheap, review is the bottleneck" — is
-filtering a fan-out tree down to the good branches. Every field lives in `attributes_json`, read by
-name with `hiloop_json_get` (a promoted field reads from its fast column transparently; alias the
-expression for readability):
+filtering a fan-out tree down to the good branches. Promoted fields are named columns of the
+schema's `ann_<schema>` view:
 
 ```sh
-hiloop telemetry query --sql "
-  SELECT lineage_path,
-         CAST(hiloop_json_get(attributes_json, '\$.score') AS DOUBLE) AS score,
-         hiloop_json_get(attributes_json, '\$.outcome') AS outcome
-  FROM events
-  WHERE run_id = '$HILOOP_RUN_ID' AND signal = 'annotation'
-        AND hiloop_json_get(attributes_json, '\$.outcome') = 'worked'
-        AND CAST(hiloop_json_get(attributes_json, '\$.score') AS DOUBLE) > 0.95
+hiloop query --sql "
+  SELECT run_id, lineage_path, outcome, score
+  FROM ann_experiment
+  WHERE outcome = 'worked' AND score > 0.95
   ORDER BY score DESC"
 ```
 
-See `querying-observability-trees` for the full query surface.
+`hiloop runs tree <root-run-id> --columns 'experiment:score'` renders the latest rollup of a
+promoted field next to each run in the lineage tree — the fastest way to eyeball a fan-out.
+
+An unpromoted field stays in the JSON payload — read it by name from the events table with
+`hiloop_json_get(attributes_json, 'note')`. See `querying-observability-trees` for the full query
+surface.

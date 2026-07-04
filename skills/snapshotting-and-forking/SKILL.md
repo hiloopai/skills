@@ -44,12 +44,15 @@ its snapshot) and starts a **child run** (`parent_run_id` set to the source's ru
 position in the run-lineage tree under its parent, which becomes its `lineage_path`:
 
 ```sh
-hiloop sandbox fork <source-sandbox-id> --project <project-id> --name arm-feature-eng --wait
+hiloop sandbox fork <source-sandbox-id> --project <project-id> --name arm-feature-eng \
+  --label lr-0.04 --wait
 ```
 
-Forking is asynchronous (`--wait` to block). The child's resources/image default to the server
-defaults / genesis base unless you set `--cpus` / `--memory-mb` / `--disk-mb` / `--image`;
-`--continuity filesystem` (the default) carries the filesystem across.
+Forking is asynchronous (`--wait` to block). `--label` names the **child run** — it is what
+`hiloop runs list` / `tree` show in place of the run id, so label each branch for what it tries.
+The child's resources/image default to the server defaults / sandbox base unless you set `--cpus` /
+`--memory-mb` / `--disk-mb` / `--image`; `--continuity filesystem` (the default) carries the
+filesystem across.
 
 > Runtime fork creation is capability-gated and provider-specific. Snapshot/restore and branch-diff
 > queries are broadly available. So make branch *comparisons* depend on the run id and `lineage_path`
@@ -61,7 +64,8 @@ defaults / genesis base unless you set `--cpus` / `--memory-mb` / `--disk-mb` / 
 2. Snapshot it (your shared baseline) — also a reusable "prebuilt image" you can restore later.
 3. Fork it into N children — each a child run with its own `lineage_path` — one per approach.
 4. Run a different attempt in each branch (see `running-commands-in-a-sandbox`).
-5. **Query per `lineage_path`** to compare them, or **branch-diff** two child runs to see exactly what
-   one did that another didn't (see `querying-observability-trees`).
+5. **Render the tree** (`hiloop runs tree <root-run-id>`), **query per `lineage_path`** to compare
+   branches, or **branch-diff** two child runs to see exactly what one did that another didn't (see
+   `querying-observability-trees`).
 
 This snapshot→fork→compare loop is the foundation of tree-native experimentation in hiloop.

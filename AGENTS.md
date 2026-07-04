@@ -12,9 +12,9 @@ self-contained; read the one that matches the task.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (lifecycle, exec, fork, snapshot, interactive
-executions), `hiloop secret`, `hiloop telemetry` (query/tail/branch-diff), `hiloop annotate` /
-`annotation-schema`, `hiloop run`, `hiloop login` — and a generic authenticated passthrough for any
-route without one:
+executions), `hiloop secret`, `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
+SQL over captured events and views), `hiloop annotate` / `annotation-schema`, `hiloop data-views`,
+`hiloop run`, `hiloop login` — and a generic authenticated passthrough for any route without one:
 
 ```sh
 hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [--output json]
