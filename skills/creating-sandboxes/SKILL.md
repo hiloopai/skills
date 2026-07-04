@@ -28,7 +28,9 @@ hiloop projects list
 hiloop projects create --slug default --name "Default"   # if none exists
 ```
 
-`hiloop sandbox create` defaults to your tenant's first project when you omit `--project`.
+Project selection is explicit everywhere: `--project <slug-or-id>` > the `HILOOP_PROJECT`
+environment variable > the active context's default project (`hiloop config set-context <name>
+--project <slug>`). With no match, the command errors rather than guessing.
 
 ## 2. Create the sandbox
 
@@ -58,12 +60,15 @@ the platform places it on a runtime that can satisfy the request.
 
 ### Bring your own image
 
-The base image is **generic** on purpose — pick the image your workload needs and install the rest at
-runtime. `--image` takes any public OCI reference (a tag like `python:3.12-slim` or
-`node:22-bookworm`). If you don't need a custom image, start from a small generic base and install
+Omit `--image` to get the **managed default base** — it carries the in-sandbox control agent that
+`exec` / `start` / `stream` need, and it is generic on purpose: start from it and install
 dependencies once the sandbox is ready — `pip install …`, `npm i -g …`, `apt-get install …` — via
-`running-commands-in-a-sandbox`. Bring your own image only when the install step is heavy enough to be
-worth baking in.
+`running-commands-in-a-sandbox`.
+
+`--image` takes any public OCI reference (a tag like `python:3.12-slim` or `node:22-bookworm`), but
+an arbitrary image boots **without** the control agent, so `exec`/`start`/`stream` won't reach it —
+bring your own image only when you have an agent-carrying base and the install step is heavy enough
+to be worth baking in.
 
 To **pin a digest** or use a **build artifact** (sources `--image` can't express), create over the
 passthrough instead:
@@ -122,12 +127,14 @@ Use the exact `key`/`support`/`maturity` strings the capabilities endpoint repor
 no runtime satisfies the requirement, creation fails fast rather than placing the sandbox somewhere it
 can't run.
 
-## 5. Delete
+## 5. Stop or delete
 
-Deleting is asynchronous and idempotent by sandbox id:
+Both are asynchronous and idempotent by sandbox id. `stop` terminates the workload but keeps the
+record inspectable; `delete` tears the sandbox down entirely:
 
 ```sh
-hiloop sandbox delete <sandbox-id> --wait
+hiloop sandbox stop <sandbox-id> --wait      # come to rest, stay inspectable
+hiloop sandbox delete <sandbox-id> --wait    # tear down
 ```
 
 Always clean up sandboxes you created for a task unless told to keep them.
@@ -135,7 +142,9 @@ Always clean up sandboxes you created for a task unless told to keep them.
 ## Tips
 
 - `hiloop sandbox list` / `get` accept `--output json`; capture the `id` fields for the next call.
-- Lifecycle commands (`create`, `delete`, `fork`, `snapshot`, `restore`) are async — pass `--wait`
-  to block, or poll `get`/`list` yourself.
+- Lifecycle commands (`create`, `stop`, `delete`, `fork`, `snapshot`, `restore`) are async — pass
+  `--wait` to block, or poll `get`/`list` yourself.
+- `hiloop usage` prints a point-in-time fleet snapshot — active sandbox counts by state and reserved
+  resources against capacity — for the tenant, or one project with `--project`.
 - For any route without a dedicated flag, `hiloop api <path> [-X post|delete] [-d '<json>']` reaches
   the whole REST surface.
