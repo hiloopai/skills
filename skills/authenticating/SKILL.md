@@ -7,7 +7,7 @@ description: >-
   scope. Use this when a hiloop command returns 401 / unauthenticated, before the first hiloop call
   in a session, or when setting up credentials for an agent.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Authenticating to hiloop
@@ -73,8 +73,8 @@ scoped least-privilege and hand it over once (the secret is shown only at creati
 so name keys for who acts with them (`laptop`, `ci-bot`):
 
 ```sh
-hiloop keys create --name agent-ci               # acts as the tenant (--kind service_account, the default)
-hiloop keys create --name laptop --kind user     # acts on behalf of you
+hiloop keys create agent-ci               # acts as the tenant (--kind service_account, the default)
+hiloop keys create laptop --kind user     # acts on behalf of you
 hiloop keys list                                 # metadata only; never reveals the secret
 hiloop keys revoke <key-id>                      # revoke when done
 ```

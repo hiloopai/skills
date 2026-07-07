@@ -6,11 +6,12 @@ description: >-
   `hiloop annotation-schema` (register the named JSON-Schema the payload is validated against, and
   promote the fields you query) and the one `hiloop annotate` verb: a whole run (`--run`), one event
   (`--target-event`), a time window (`--range`), or a project (`--project`, run-less cross-run
-  knowledge). Promoted fields become named columns of the schema's `ann_<schema>` query view. Use
+  knowledge) — plus reading them back with `hiloop annotations list`. Promoted fields become named
+  columns of the schema's `ann_<schema>` query view. Use
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Annotating runs
@@ -38,7 +39,7 @@ acceleration; `:identity` makes a field part of the latest-wins supersession key
 point-lookup index (string fields only). Register it once per tenant:
 
 ```sh
-hiloop annotation-schema register --name experiment --json-schema '{
+hiloop annotation-schema register experiment --json-schema '{
     "type": "object",
     "properties": {
       "outcome":   { "enum": ["worked", "failed"] },
@@ -79,10 +80,10 @@ hiloop annotate \
 - `--target-event <event-id>` pins the annotation to one event; omit it for a run-level judgment.
 - `--range <start>..<end>` targets a time window instead — each endpoint an RFC 3339 timestamp
   (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query
-  columns).
-- `--lineage-path` stamps the annotation at one subtree of the run; the default is the run root.
-- **Correction = a new annotation.** Readers take the latest per (run, schema) — you never edit one
-  in place.
+  columns), or both endpoints event ids (the window then spans those two events' recorded
+  timestamps).
+- **Correction = a new annotation.** Readers take the newest write per (anchor, schema, target),
+  refined by any `:identity` fields the schema declares — you never edit one in place.
 
 ## 3. Annotate a project — run-less, cross-run knowledge
 
@@ -97,10 +98,21 @@ hiloop annotate --project default --schema experiment \
 Project annotations are durable cross-run knowledge: they survive every sandbox and show up in the
 same query surface.
 
-## 4. Filter on what you annotated
+## 4. Read back and filter on what you annotated
 
-Annotations are queryable immediately. The payoff — "fan out is cheap, review is the bottleneck" — is
-filtering a fan-out tree down to the good branches. Promoted fields are named columns of the
+`hiloop annotations list` reads a target's current annotations directly — the newest write per
+(anchor, schema, target), no SQL needed:
+
+```sh
+hiloop annotations list --run <run-id>             # a run's own annotations
+hiloop annotations list --run <run-id> --subtree   # the run's whole lineage subtree
+hiloop annotations list --project <slug>           # a project's run-less annotations
+```
+
+`--history` returns every stored version instead of just the current one.
+
+Annotations are also queryable immediately as SQL. The payoff — "fan out is cheap, review is the
+bottleneck" — is filtering a fan-out tree down to the good branches. Promoted fields are named columns of the
 schema's `ann_<schema>` view:
 
 ```sh
