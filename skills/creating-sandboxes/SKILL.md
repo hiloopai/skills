@@ -8,7 +8,7 @@ description: >-
   model. Use when asked to spin up / provision / launch a hiloop sandbox or environment, choose its
   image, or tear one down.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Creating sandboxes
@@ -25,7 +25,7 @@ to `hiloop api`, the authenticated passthrough for any REST route.
 
 ```sh
 hiloop projects list
-hiloop projects create --slug default --name "Default"   # if none exists
+hiloop projects create default   # if none exists; --name adds optional display metadata
 ```
 
 Project selection is explicit everywhere: `--project <slug-or-id>` > the `HILOOP_PROJECT`
