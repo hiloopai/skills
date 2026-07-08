@@ -50,6 +50,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | `managing-secrets` | Give a sandbox a credential it uses but never sees (the secret broker) |
 | `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
 | `annotating-runs` | Stamp structured judgments (outcome / score) you can filter and aggregate on |
+| `reporting-product-bugs` | Report a hiloop bug (or send product feedback) to the hiloop team — never your task's results |
 
 ## Canonical end-to-end loop
 
