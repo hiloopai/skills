@@ -17,6 +17,7 @@
 - [managing-secrets](skills/managing-secrets/SKILL.md): hiloop secret set/list/rotate/revoke + hiloop run --secret; a write-only credential a sandbox uses but never sees (the broker).
 - [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run, orient with runs list/tree/show, query with read-only SQL (hiloop query) over the events table + views, lineage_path scoping, runs tail, events payload, branch-diff.
 - [annotating-runs](skills/annotating-runs/SKILL.md): hiloop annotation-schema + the one annotate verb (a run, an event, a time range, or a project); structured judgments you can filter and aggregate on via ann_<schema> views.
+- [reporting-product-bugs](skills/reporting-product-bugs/SKILL.md): hiloop feedback (or POST /v1/feedback) — report a hiloop product bug with expected/actual/repro, evidence ids, severity, fingerprint dedup; product bugs and ideas, never task results.
 
 ## Reference
 
