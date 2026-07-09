@@ -4,12 +4,12 @@ description: >-
   Run commands inside a hiloop sandbox and move files across its boundary. Covers the quick buffered
   `hiloop sandbox exec`, starting an interactive execution with `hiloop sandbox start` (env, cwd,
   timeout, stdin, pty), streaming its combined output with `stream`, steering it with `send-input`
-  (stdin and control signals: interrupt/terminate/kill/eof) and `kill`, reading exit codes, and
-  archiving / restoring files via artifacts. Use when asked to run a command, script, build, test, or
-  long-running / interactive process inside a hiloop sandbox, to watch or steer one live, or to get
-  files in or out.
+  (stdin and control signals: interrupt/terminate/kill/eof) and `kill`, reading exit codes, safe
+  retries with idempotency keys, output caps, and moving files in/out with `hiloop sandbox cp` (or
+  artifacts). Use when asked to run a command, script, build, test, or long-running / interactive
+  process inside a hiloop sandbox, to watch or steer one live, or to get files in or out.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Running commands in a sandbox
@@ -33,7 +33,18 @@ hiloop sandbox exec <sandbox-id> --timeout-secs 600 -- python train.py --lr 3e-4
 
 It polls the execution to completion, prints stdout/stderr, and exits with the command's exit code —
 so you can branch on it directly. A non-zero exit means the command failed inside the sandbox; read
-stderr to diagnose. (`--timeout-secs` is optional; omit it for the server default.)
+stderr to diagnose. Three behaviors to know:
+
+- **Timeouts have a ceiling.** `--timeout-secs` is optional (omit for the server default); a command
+  that exceeds it fails with `command_timed_out`. The server rejects a timeout above what one queued
+  execution may run — run longer work with `start` + `stream` instead.
+- **Captured output is capped** by the runtime (as low as 128 KiB of combined stdout/stderr). An
+  over-cap command may be stopped at the cap and prints the captured leading bytes plus a truncation
+  warning on stderr — write large output to a file in the sandbox and bring it back with
+  `sandbox cp` (below).
+- **Retry ambiguously-failed execs with an idempotency key.** Pass `--idempotency-key <key>`:
+  re-running with the same key returns the original execution instead of running the command a
+  second time (the same key with a different command is rejected).
 
 > Need to set env vars or a working directory for a one-shot? Those aren't `exec` flags — use the
 > `:execute` passthrough (below) with a full command spec, or bake them into the command
@@ -120,16 +131,25 @@ prompts or steer an interactive job without restarting.
 
 ## Move files across the boundary
 
-File transfer is over the passthrough. Archive a file from the sandbox into an **artifact**:
+`hiloop sandbox cp` copies one file between your machine and a sandbox. Address the sandbox side as
+`<sandbox>:<absolute path>` (id or name), the local side as a plain path — either direction:
+
+```sh
+hiloop sandbox cp ./data.zip <sandbox-id>:/workspace/data.zip     # stage a file in
+hiloop sandbox cp <sandbox-id>:/workspace/out.bin ./out.bin       # bring one back
+```
+
+It blocks until the copy lands. The file moves through the content-addressed artifact store, so the
+acknowledgement carries the artifact id and its content digest, and downloads are verified against
+that digest before the destination file is finalized. Files over the per-transfer size limit are
+rejected with a clear error — use a **volume** for larger data sets (the `managing-volumes` skill).
+
+When you want a sandbox file archived as a durable **artifact** without a local hop (or the reverse),
+use the passthrough:
 
 ```sh
 hiloop api "/v1/sandboxes/<sandbox-id>/files:to-artifact" -X post \
   -d '{ "path": "/workspace/results/report.json", "mediaType": "application/json" }'
-```
-
-Restore an artifact into a sandbox file:
-
-```sh
 hiloop api "/v1/sandboxes/<sandbox-id>/files:from-artifact" -X put \
   -d '{ "artifactId": "<artifact-id>", "path": "/workspace/inputs/report.json" }'
 ```

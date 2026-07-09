@@ -7,7 +7,7 @@ description: >-
   asked to snapshot, save, checkpoint, branch, or fork a sandbox, or to explore alternative agent
   paths from a common starting point.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Snapshotting and forking
@@ -29,11 +29,12 @@ Snapshotting is asynchronous; `--wait` blocks until it completes and prints the 
 hiloop sandbox snapshot <sandbox-id> --wait
 ```
 
-List and restore snapshots (listing is over the passthrough; restore has a dedicated command):
+List, inspect, and restore snapshots. A snapshot outlives its source sandbox — stop or delete the
+sandbox and the snapshot stays restorable:
 
 ```sh
-hiloop api "/v1/snapshots?projectId=<project-id>"            # list
-hiloop api "/v1/snapshots/<snapshot-id>"                     # inspect
+hiloop snapshots list --project <project-id>                 # newest first; --state ready to filter
+hiloop snapshots get <snapshot-id>                           # state, size, origin, source run
 hiloop sandbox restore <snapshot-id> --project <project-id> --wait   # restore into a new sandbox
 ```
 
@@ -53,6 +54,10 @@ Forking is asynchronous (`--wait` to block). `--label` names the **child run** �
 The child's resources/image default to the server defaults / sandbox base unless you set `--cpus` /
 `--memory-mb` / `--disk-mb` / `--image`; `--continuity filesystem` (the default) carries the
 filesystem across.
+
+The child also **inherits the source sandbox's secret bindings by default** (values are resolved
+fresh per child, never copied — see `managing-secrets`); pass `--no-inherit-secrets` to start it
+with none.
 
 > Runtime fork creation is capability-gated and provider-specific. Snapshot/restore and branch-diff
 > queries are broadly available. So make branch *comparisons* depend on the run id and `lineage_path`

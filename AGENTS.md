@@ -12,7 +12,7 @@ self-contained; read the one that matches the task.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (lifecycle, exec, fork, snapshot, interactive
-executions), `hiloop secret`, `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
+executions), `hiloop secret`, `hiloop volume` (publish / mount / pre-warm large data), `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
 SQL over captured events and views), `hiloop annotate` / `annotation-schema`, `hiloop data-views`,
 `hiloop run`, `hiloop login` — and a generic authenticated passthrough for any route without one:
 
@@ -48,6 +48,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | `running-commands-in-a-sandbox` | Run commands (quick or interactive); stream + steer long jobs; move files in/out via artifacts |
 | `snapshotting-and-forking` | Snapshot state and fork into divergent branches |
 | `managing-secrets` | Give a sandbox a credential it uses but never sees (the secret broker) |
+| `managing-volumes` | Publish large data (datasets, model caches, checkpoints) as versioned volumes sandboxes mount instead of copying |
 | `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
 | `annotating-runs` | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | `reporting-product-bugs` | Report a hiloop bug (or send product feedback) to the hiloop team — never your task's results |
