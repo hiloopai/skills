@@ -17,6 +17,7 @@ definitions every turn.
 | [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands; stream + steer long-running processes; move files in/out |
 | [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot state and fork into branches |
 | [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a sandbox a credential it uses but never sees (the secret broker) |
+| [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish large data (datasets, model caches, checkpoints) as versioned volumes sandboxes mount instead of copying |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
 | [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | [`reporting-product-bugs`](skills/reporting-product-bugs/SKILL.md) | Report a hiloop bug (or send product feedback) to the hiloop team with `hiloop feedback` |

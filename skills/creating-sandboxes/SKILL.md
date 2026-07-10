@@ -4,11 +4,12 @@ description: >-
   Create, inspect, and delete hiloop sandboxes — isolated, snapshottable environments an agent runs
   in. Covers the create→poll-until-ready→delete lifecycle with the dedicated `hiloop sandbox`
   commands, projects, bring-your-own images (any OCI reference or a build artifact), resource requests
-  (cpus/memory/disk/architecture), capability requirements, capture, and the desired-vs-observed state
-  model. Use when asked to spin up / provision / launch a hiloop sandbox or environment, choose its
-  image, or tear one down.
+  (cpus/memory/disk/architecture), capability requirements, volume mounts, capture, stop/resume
+  semantics (when the workspace survives), and the desired-vs-observed state model. Use when asked to
+  spin up / provision / launch a hiloop sandbox or environment, choose its image, stop or resume one,
+  or tear one down.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Creating sandboxes
@@ -84,6 +85,22 @@ hiloop api /v1/sandboxes -X post -d '{
 #   "image": { "buildArtifact": { "artifactRef": "<artifact-ref>" } }
 ```
 
+### Mount a volume
+
+For large shared input data (datasets, model caches), mount a **volume** at create instead of
+copying bytes in. Mounts are not a `create` flag — pass `volumeMounts` over the passthrough
+(read-only; the volume's current version is pinned at admission). Publishing and pre-warming
+volumes is the `managing-volumes` skill:
+
+```sh
+hiloop api /v1/sandboxes -X post -d '{
+    "projectId": "<project-id>",
+    "name": "trainer-1",
+    "resources": { "cpus": 4, "memoryMb": "8192" },
+    "volumeMounts": [ { "volume": "imagenet-160", "targetPath": "/data/imagenet" } ]
+  }'
+```
+
 ## 3. Poll until ready
 
 hiloop reconciles sandboxes asynchronously: the **desired** state you asked for is tracked separately
@@ -127,23 +144,38 @@ Use the exact `key`/`support`/`maturity` strings the capabilities endpoint repor
 no runtime satisfies the requirement, creation fails fast rather than placing the sandbox somewhere it
 can't run.
 
-## 5. Stop or delete
+## 5. Stop, resume, or delete
 
-Both are asynchronous and idempotent by sandbox id. `stop` terminates the workload but keeps the
-record inspectable; `delete` tears the sandbox down entirely:
+All are asynchronous and idempotent by sandbox id. `stop` brings the sandbox to rest in a stopped
+state and keeps its record inspectable; `delete` tears it down entirely:
 
 ```sh
 hiloop sandbox stop <sandbox-id> --wait      # come to rest, stay inspectable
+hiloop sandbox resume <sandbox-id> --wait    # wake it back up
 hiloop sandbox delete <sandbox-id> --wait    # tear down
 ```
+
+**Whether the workspace survives a stop depends on the provider.** Where state is preserved,
+`resume` brings the sandbox back with its filesystem and processes intact. Otherwise the workspace
+does **not** survive the stop, and the stop's operation result carries a warning saying so — read
+it, and **snapshot first** (`snapshotting-and-forking`) when you need a restore point.
+
+Resume is honest about that: resuming an already-running sandbox succeeds without effect, but when
+the stop tore the workload down, `resume` can only provision a fresh, empty workspace — it **fails
+unless you pass `--fresh-workspace`** (the previous contents are not recovered; restore a snapshot
+instead to get captured data back).
+
+If a sandbox ends up **failed**, `hiloop sandbox get` shows why: a stable machine-readable failure
+code (for example `runtime_unavailable` or `workspace_lost`) plus a human-readable message —
+diagnose from that instead of guessing.
 
 Always clean up sandboxes you created for a task unless told to keep them.
 
 ## Tips
 
 - `hiloop sandbox list` / `get` accept `--output json`; capture the `id` fields for the next call.
-- Lifecycle commands (`create`, `stop`, `delete`, `fork`, `snapshot`, `restore`) are async — pass
-  `--wait` to block, or poll `get`/`list` yourself.
+- Lifecycle commands (`create`, `stop`, `resume`, `delete`, `fork`, `snapshot`, `restore`) are
+  async — pass `--wait` to block, or poll `get`/`list` yourself.
 - `hiloop usage` prints a point-in-time fleet snapshot — active sandbox counts by state and reserved
   resources against capacity — for the tenant, or one project with `--project`.
 - For any route without a dedicated flag, `hiloop api <path> [-X post|delete] [-d '<json>']` reaches

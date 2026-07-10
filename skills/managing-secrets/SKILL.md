@@ -8,7 +8,7 @@ description: >-
   without the key landing in the agent's context, on disk, in the environment, or baked into a
   snapshot.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Managing sandbox secrets
@@ -57,6 +57,11 @@ hiloop run --secret anthropic -- claude -p "do the task"
 `https://api.anthropic.com/…` with no key; the broker adds the `authorization` header in flight. This
 is why a fork of the sandbox carries **no plaintext secret**: there was never one in the filesystem to
 copy.
+
+**Forks inherit bindings, not values.** A forked child sandbox starts with every secret *binding*
+the source has by default — each value is still resolved fresh from the broker per child, never
+copied — so branches keep working without re-binding. Pass `--no-inherit-secrets` on
+`hiloop sandbox fork` to start the child with no bindings (see `snapshotting-and-forking`).
 
 ## Manage the lifecycle
 
