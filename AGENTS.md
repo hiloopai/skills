@@ -12,7 +12,8 @@ self-contained; read the one that matches the task.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (lifecycle, exec, fork, snapshot, interactive
-executions), `hiloop secret`, `hiloop volume` (publish / mount / pre-warm large data), `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
+executions), `hiloop secret`, `hiloop volume` (publish / mount / pre-warm large data), `hiloop lease`
+(serialize concurrent orchestrators), `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
 SQL over captured events and views), `hiloop annotate` / `annotation-schema`, `hiloop data-views`,
 `hiloop run`, `hiloop login` — and a generic authenticated passthrough for any route without one:
 
@@ -35,8 +36,10 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 3. **Treat mutations as async.** Create/execute/snapshot/fork return an **operation**; poll
    `GET /v1/operations/{id}` (or the resource) until ready — never assume immediate completion.
 4. **Idempotency keys are optional.** Create-style mutations (create, execute, snapshot, restore,
-   fork) accept an `idempotency-key` — supply your own (and reuse it) to make a retry safe, or omit it
-   and the server generates one. Delete and lifecycle ops need no key; they are idempotent by id.
+   fork) accept an `--idempotency-key` — supply your own (and reuse it) to make a retry safe: a replay
+   returns the original resource, the CLI retries ambiguous failures itself (up to 3 attempts), and
+   the same key with a different request fails with `idempotency_conflict` (409). Omit it and every
+   invocation is fresh. Delete and lifecycle ops need no key; they are idempotent by id.
 5. **Clean up** sandboxes you created unless told to keep them.
 
 ## The skills
@@ -49,6 +52,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | `snapshotting-and-forking` | Snapshot state and fork into divergent branches |
 | `managing-secrets` | Give a sandbox a credential it uses but never sees (the secret broker) |
 | `managing-volumes` | Publish large data (datasets, model caches, checkpoints) as versioned volumes sandboxes mount instead of copying |
+| `coordinating-with-leases` | Serialize concurrent agents with named, TTL-bounded leases (at most one live holder per name) |
 | `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
 | `annotating-runs` | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | `reporting-product-bugs` | Report a hiloop bug (or send product feedback) to the hiloop team — never your task's results |

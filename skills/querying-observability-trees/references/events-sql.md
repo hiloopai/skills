@@ -2,9 +2,10 @@
 
 `hiloop query` runs a **read-only `SELECT`** against a single denormalized table, `events`, holding
 every captured telemetry event — plus your registered views. The pragmatic flags (`--run-id`,
-`--signal`, `--lineage-path`, `--since`/`--until`, `--limit`) build a `SELECT * FROM events WHERE …`
-for you; `--sql` sends an arbitrary `SELECT` (inline, `@file`, or `-`/`@-` for stdin). There is one
-query surface — SQL.
+`--signal`, `--lineage-path`, `--fields`, `--since`/`--until`, `--limit`) build a
+`SELECT … FROM events WHERE …` for you — `--fields` picks the columns (plain names, or `*` for every
+column; omitted, a minimal default set); `--sql` sends an arbitrary `SELECT` (inline, `@file`, or
+`-`/`@-` for stdin). There is one query surface — SQL.
 
 ## How it's kept safe
 
@@ -21,7 +22,7 @@ Every query runs through a gateway that:
 ## Columns
 
 `SELECT *` returns these (a column not set for a given signal is null). When unsure, run a small
-`--limit 5 --output json` query and read the keys off the rows.
+`--fields '*' --limit 5 --output json` query and read the keys off the rows.
 
 **Event spine** (every event):
 
@@ -152,4 +153,5 @@ untruncated machine view.
 - **`hiloop runs tail <run-id>`** — follow a run's events live; same `--signal`/`--lineage-path` scoping.
 - **`hiloop runs show <run-id>`** — one run's transcript, time-ordered, small payloads resolved inline.
 - **`hiloop events payload <event-id>`** — the raw captured payload bytes, exactly as captured.
-- **`hiloop telemetry branch-diff`** — set-difference of two fork branches; see the parent SKILL.md §7.
+- **`hiloop api /v1/telemetry/branch-diff`** — server-side set-difference of two runs' subtrees; the
+  CLI-side anti-join recipe is in the parent SKILL.md §7.

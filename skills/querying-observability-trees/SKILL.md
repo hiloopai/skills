@@ -6,11 +6,11 @@ description: >-
   (list / tree / show), querying with read-only SQL over the `events` table and registered views
   (`hiloop query`, pragmatic flags or `--sql`), following a run live with `hiloop runs tail`,
   scoping to a branch by `lineage_path`, fetching raw payload bytes with `hiloop events payload`,
-  and `hiloop telemetry branch-diff` to compare two child runs. Use when asked to capture /
-  observe / trace an agent run, query telemetry or LLM calls, compute token metrics, scope to a
-  branch, follow a run live, or compare what two forked branches did.
+  and branch-diffing two child runs (an anti-join through `hiloop query`, or the branch-diff API).
+  Use when asked to capture / observe / trace an agent run, query telemetry or LLM calls, compute
+  token metrics, scope to a branch, follow a run live, or compare what two forked branches did.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Querying observability trees
@@ -67,9 +67,12 @@ under `payload_ref.inline`.
 hiloop query --run-id 01K6Z… --signal llm
 ```
 
-Flags that build the query: `--run-id`, `--signal`, `--lineage-path`, `--limit`, `--since`, `--until`
-(`--since`/`--until` accept RFC 3339 or nanoseconds). The CLI prints a table; pass `--output json` for
-the raw rows (always full; table cells truncate — tune with `--max-cell-width`, `0` to disable).
+Flags that build the query: `--run-id`, `--signal`, `--lineage-path`, `--fields`, `--limit`,
+`--since`, `--until` (`--since`/`--until` accept RFC 3339 or nanoseconds). `--fields` picks the
+columns — comma-separated plain column names, or `*` for every column; omitted, you get a minimal
+default set (event id, time, signal, name, run identity, principal, payload size). The CLI prints a
+table; pass `--output json` for the raw rows (always full; table cells truncate — tune with
+`--max-cell-width`, `0` to disable).
 
 Your **identity scopes the query to your tenant automatically**, so the SQL never names a tenant — and
 can't reach another one.
@@ -94,7 +97,7 @@ vocabulary, and the query rules — payload resolution, token metrics from raw b
 come back — are in [`references/events-sql.md`](references/events-sql.md). Read it before
 hand-writing a complex query.
 
-> Not sure which columns exist? Run `hiloop query --run-id 01K6Z… --limit 5 --output json`
+> Not sure which columns exist? Run `hiloop query --run-id 01K6Z… --fields '*' --limit 5 --output json`
 > and read the keys off the rows; every column is in the reference.
 
 ## 5. Walk the tree: scope to one branch
@@ -134,20 +137,35 @@ or at one `--lineage-path` to follow a single arm.
 ## 7. Branch diff: what did A do that B didn't?
 
 When two child runs branch from a shared snapshot and diverge, a **branch diff** returns the events
-present in one run's subtree but absent in the other — the exact set-difference of what one branch did
-and another didn't. It compares two **runs** (by run id), not two lineage paths.
+present in one run but absent in the other — the exact set-difference of what one branch did and
+another didn't. It compares two **runs** (by run id) on a semantic key: signal, name, and
+attributes. From the CLI it is an anti-join through `hiloop query`:
 
 ```sh
-hiloop telemetry branch-diff \
-  --run-id-a 01K70… \
-  --run-id-b 01K71… \
-  --signal llm
+hiloop query --sql "
+  SELECT a.event_id, a.ts_wall_ns, a.signal, a.name
+  FROM events a
+  LEFT JOIN events b
+    ON  b.run_id = '01K71…'
+    AND b.signal = a.signal
+    AND b.name = a.name
+    AND b.attributes_json = a.attributes_json
+  WHERE a.run_id = '01K70…'
+    AND a.signal = 'llm'
+    AND b.event_id IS NULL
+  ORDER BY a.ts_wall_ns"
 ```
 
-Result: one row per event unique to run A. Swap `--run-id-a`/`--run-id-b` for the reverse. Use it to
-find the divergent decision, validate that a change had only its intended effect, or triage a
-regression against a known-good sibling. (Branch diff is its own endpoint — it encodes run-tree
-semantics the bare `events` table doesn't surface — not something you hand-write as SQL.)
+Result: one row per event unique to run A. Swap the two run ids for the reverse. Use it to find the
+divergent decision, validate that a change had only its intended effect, or triage a regression
+against a known-good sibling. The same diff is also a dedicated endpoint that resolves each run's
+whole lineage subtree server-side — reach it over the passthrough:
+
+```sh
+hiloop api /v1/telemetry/branch-diff -X post -d '{
+    "spec": { "runIdA": "01K70…", "runIdB": "01K71…", "signal": "llm" }
+  }'
+```
 
 For aggregate comparisons across many branches (counts, percentiles, tokens), use a grouped query
 with a `lineage_path` breakdown (§4) instead of a set-difference diff.

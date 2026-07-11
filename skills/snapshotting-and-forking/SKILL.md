@@ -2,12 +2,12 @@
 name: snapshotting-and-forking
 description: >-
   Snapshot a hiloop sandbox and fork it to explore multiple paths from a shared state. Covers
-  `hiloop sandbox snapshot` / `restore` / `fork`, listing snapshots, and forking into divergent
-  branches identified by lineage_path — the core primitive behind tree-native experimentation. Use when
-  asked to snapshot, save, checkpoint, branch, or fork a sandbox, or to explore alternative agent
-  paths from a common starting point.
+  `hiloop sandbox snapshot` / `restore` / `fork`, listing snapshots, safe retries with idempotency
+  keys, and forking into divergent branches identified by lineage_path — the core primitive behind
+  tree-native experimentation. Use when asked to snapshot, save, checkpoint, branch, or fork a
+  sandbox, or to explore alternative agent paths from a common starting point.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Snapshotting and forking
@@ -28,6 +28,9 @@ Snapshotting is asynchronous; `--wait` blocks until it completes and prints the 
 ```sh
 hiloop sandbox snapshot <sandbox-id> --wait
 ```
+
+With `--output json`, `--wait` prints `{"snapshot_id": …}` — reliable on CLI v0.6.0 and later
+(earlier versions could print an empty id; upgrade rather than script around it).
 
 List, inspect, and restore snapshots. A snapshot outlives its source sandbox — stop or delete the
 sandbox and the snapshot stays restorable:
@@ -62,6 +65,14 @@ with none.
 > Runtime fork creation is capability-gated and provider-specific. Snapshot/restore and branch-diff
 > queries are broadly available. So make branch *comparisons* depend on the run id and `lineage_path`
 > (see `querying-observability-trees`), not on a particular fork mechanism.
+
+## Safe retries: idempotency keys
+
+`snapshot`, `restore`, and `fork` (like `create`) take `--idempotency-key <key>`: re-running with
+the same key returns the original resource and operation instead of making a second one, so an
+ambiguous failure (a 5xx, a lost response) can be retried without risking a duplicate — and with a
+key set the CLI retries those failures itself, up to 3 attempts. Reusing a key with a **different**
+request fails with `idempotency_conflict` (409). Omitted, every invocation makes a fresh resource.
 
 ## The pattern: explore N paths from one state
 
