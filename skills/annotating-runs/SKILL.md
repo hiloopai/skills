@@ -11,7 +11,7 @@ description: >-
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Annotating runs
@@ -82,6 +82,12 @@ hiloop annotate \
   (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query
   columns), or both endpoints event ids (the window then spans those two events' recorded
   timestamps).
+- **Retries are safe with `--event-id`.** Mint the annotation's event id yourself (a canonical
+  26-character ULID): re-running with the same id returns the stored annotation instead of writing a
+  duplicate, so an ambiguous failure (a 5xx, a lost response) can be retried blindly. The id names
+  this logical annotation — never reuse it for different content. `--output json` prints
+  `{"event_id": …}` either way. Omitted, the server mints a fresh id per invocation and a retry
+  writes a new annotation.
 - **Correction = a new annotation.** Readers take the newest write per (anchor, schema, target),
   refined by any `:identity` fields the schema declares — you never edit one in place.
 

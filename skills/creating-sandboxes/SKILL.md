@@ -9,7 +9,7 @@ description: >-
   spin up / provision / launch a hiloop sandbox or environment, choose its image, stop or resume one,
   or tear one down.
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # Creating sandboxes
@@ -47,6 +47,12 @@ hiloop sandbox create \
 Create is **asynchronous**: by default it prints the new sandbox id and an operation id and returns.
 Pass `--wait` to block until the sandbox is running. Omit any resource flag to take the server
 default; `--arch` is `x86_64` (or `aarch64`). `--output json` prints the raw body — capture the id.
+
+To make a retry safe, pass `--idempotency-key <key>`: re-running with the same key returns the
+original sandbox instead of creating a second one, and with a key set the CLI retries ambiguous
+failures (a 5xx, a lost response) itself, up to 3 attempts. Reusing a key with a **different**
+request fails with `idempotency_conflict` (409). Omitted, every invocation creates fresh. The same
+flag is on `fork` / `snapshot` / `restore` (see `snapshotting-and-forking`).
 
 ### Resources
 
@@ -158,7 +164,8 @@ hiloop sandbox delete <sandbox-id> --wait    # tear down
 **Whether the workspace survives a stop depends on the provider.** Where state is preserved,
 `resume` brings the sandbox back with its filesystem and processes intact. Otherwise the workspace
 does **not** survive the stop, and the stop's operation result carries a warning saying so — read
-it, and **snapshot first** (`snapshotting-and-forking`) when you need a restore point.
+it (the CLI prints it at stop time on v0.6.0+), and **snapshot first** (`snapshotting-and-forking`)
+when you need a restore point.
 
 Resume is honest about that: resuming an already-running sandbox succeeds without effect, but when
 the stop tore the workload down, `resume` can only provision a fresh, empty workspace — it **fails
