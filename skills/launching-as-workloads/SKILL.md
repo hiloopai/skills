@@ -5,13 +5,13 @@ description: >-
   tenant — with `--as workload/<name>` on `hiloop run` and `hiloop sandbox create`. Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
-  every tenant member or restrict it to listed users; owner/admin only), plus deleting one via
-  `DELETE /v1/workloads/{name}` (owner/admin only; live sandboxes conflict, past attribution
-  keeps only the raw id). Use when work should be attributed to a service identity — a bot, a
+  every tenant member or restrict it to listed users; owner/admin only) / `delete` (owner/admin
+  only; asks for confirmation unless `--yes`; live sandboxes conflict, past attribution keeps
+  only the raw id). Use when work should be attributed to a service identity — a bot, a
   pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
   control who may launch as one.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # Launching as workloads
@@ -39,12 +39,14 @@ Names must be lowercase letters, digits, `.`, `_` or `-`, starting and ending wi
 digit — anything else is rejected with `invalid_argument` (400), and re-registering an existing
 name is `already_exists` (409). A new workload starts **open to launch by any tenant member**.
 
-Deleting is explicit too. The CLI has no dedicated subcommand for it yet — use the authenticated
-passthrough (an owner/admin action; a successful delete returns `{}`):
+Deleting is explicit too — an owner/admin action with a confirmation prompt. Pass `--yes` to skip
+the prompt (required when stdin is not an interactive terminal, e.g. in a script):
 
 ```sh
-hiloop api /v1/workloads/codex-runner -X delete
+hiloop workloads delete codex-runner --yes
 ```
+
+Success prints `Deleted workload codex-runner.` (under `--output json`, the raw `{}` response).
 
 A workload whose sandboxes are still running under its identity is a `conflict` (409) — stop them
 first. Past runs keep only the workload's **raw id** in their attribution: once the name is gone
@@ -132,6 +134,6 @@ record — so the new ACL is confirmed in the same call.
 3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run` and
    `hiloop sandbox create` both take it.
 4. Read it back anytime: `hiloop workloads show <name>` for the ACL, `list` for the registry.
-5. (Owner/admin) retire a role you no longer need: `hiloop api /v1/workloads/<name> -X delete` —
-   stop its sandboxes first (live ones are a `conflict`), and remember past runs keep only its
-   raw id.
+5. (Owner/admin) retire a role you no longer need: `hiloop workloads delete <name>` (confirms
+   first; `--yes` to skip) — stop its sandboxes first (live ones are a `conflict`), and remember
+   past runs keep only its raw id.
