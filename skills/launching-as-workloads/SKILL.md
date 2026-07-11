@@ -5,13 +5,14 @@ description: >-
   tenant — with `--as workload/<name>` on `hiloop run` and `hiloop sandbox create`. Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
-  every tenant member or restrict it to listed users; owner/admin only) / `delete` (owner/admin
+  every tenant member or restrict it to kinded principals — users by id and/or service-account
+  keys such as a CI pipeline's; owner/admin only) / `delete` (owner/admin
   only; asks for confirmation unless `--yes`; live sandboxes conflict, past attribution keeps
   only the raw id). Use when work should be attributed to a service identity — a bot, a
   pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
   control who may launch as one.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Launching as workloads
@@ -94,8 +95,8 @@ launch as it:
     "description": "Codex fleet runner",
     "id": "47406778-b03b-463c-91e6-488bdc9fab9b",
     "launch_acl": {
-      "policy": "WORKLOAD_LAUNCH_POLICY_MEMBERS",
-      "user_ids": []
+      "launchers": [],
+      "policy": "WORKLOAD_LAUNCH_POLICY_MEMBERS"
     },
     "name": "codex-runner",
     "updated_at": "2026-07-11T01:39:15.922827+00:00"
@@ -104,33 +105,43 @@ launch as it:
 ```
 
 `launch_acl.policy` is `WORKLOAD_LAUNCH_POLICY_MEMBERS` (any tenant member may launch — the default
-for a new workload, `user_ids` empty) or `WORKLOAD_LAUNCH_POLICY_RESTRICTED` (only the listed
-`user_ids`). The table view renders the same as `LAUNCH members`, or `LAUNCH restricted (n)` plus a
-`LAUNCHERS` row. Reading a name that isn't registered is `not_found` (404), exit 1.
+for a new workload, `launchers` empty) or `WORKLOAD_LAUNCH_POLICY_RESTRICTED` (only the listed
+`launchers`). Each launcher is a **kinded principal** — `{"kind": "user", "principal_id": "<user
+id>"}` or `{"kind": "service_account", "principal_id": "<key id>"}`. The table view renders the
+same as `LAUNCH members`, or `LAUNCH restricted (n)` plus a `LAUNCHERS` row of `kind:id` tokens
+(e.g. `service_account:c3558c90-…`). Reading a name that isn't registered is `not_found` (404),
+exit 1.
 
 ## Control who may launch as it
 
 `allow-launch` **sets** the launch ACL — it is a PUT, so each call replaces the previous ACL, never
-appends to it. It requires an owner or admin in the tenant. Pass exactly one mode:
+appends to it. It requires an owner or admin in the tenant. Either open it to all members, or
+restrict it to named principals — tenant members by user id (`--user`) and/or service-account keys
+by key id (`--service-account`, e.g. authorizing a CI pipeline's key to launch as the role):
 
 ```sh
-# Restrict launching to the listed users (repeat --user; the list replaces the previous one).
-hiloop workloads allow-launch codex-runner --user 47a5bc34-c573-4c50-a8a9-392b76a59e5b
+# Restrict launching to a user and a CI service-account key (the list replaces the previous one).
+hiloop workloads allow-launch codex-runner \
+  --user 47a5bc34-c573-4c50-a8a9-392b76a59e5b \
+  --service-account c3558c90-f175-4ac4-bc5c-8ba82028f2c6
 
 # Reopen launching to every tenant member (the default for a new workload).
 hiloop workloads allow-launch codex-runner --all-members
 ```
 
-`--all-members` and `--user` are mutually exclusive, and passing neither is an error (`pass
---all-members to open launching, or at least one --user to restrict it`). `--user` takes a user id
-and is repeatable. The command prints the updated workload — `--output json` returns the full
-record — so the new ACL is confirmed in the same call.
+`--user` and `--service-account` are both repeatable and combine into one launcher list;
+`--all-members` excludes both, and passing none of the three is an error (`pass --all-members to
+open launching, or at least one --user or --service-account to restrict it`). A `--service-account`
+id must be one of your tenant's service-account keys — anything else is rejected. The command
+prints the updated workload — `--output json` returns the full record, e.g. `"launchers":
+[{"kind": "service_account", "principal_id": "c3558c90-…"}]` — so the new ACL is confirmed in the
+same call.
 
 ## The pattern
 
 1. Register the role once: `hiloop workloads create <name> --description "…"`.
-2. (Owner/admin) scope it: `allow-launch <name> --user …` for a restricted role, or leave a new
-   workload open to all members.
+2. (Owner/admin) scope it: `allow-launch <name> --user … --service-account …` for a restricted
+   role (members and/or CI keys), or leave a new workload open to all members.
 3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run` and
    `hiloop sandbox create` both take it.
 4. Read it back anytime: `hiloop workloads show <name>` for the ACL, `list` for the registry.
