@@ -5,11 +5,13 @@ description: >-
   tenant — with `--as workload/<name>` on `hiloop run` and `hiloop sandbox create`. Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
-  every tenant member or restrict it to listed users; owner/admin only). Use when work should be
-  attributed to a service identity — a bot, a pipeline, a fleet role — rather than to whichever
-  credential launched it, or when asked to control who may launch as one.
+  every tenant member or restrict it to listed users; owner/admin only), plus deleting one via
+  `DELETE /v1/workloads/{name}` (owner/admin only; live sandboxes conflict, past attribution
+  keeps only the raw id). Use when work should be attributed to a service identity — a bot, a
+  pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
+  control who may launch as one.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # Launching as workloads
@@ -37,8 +39,17 @@ Names must be lowercase letters, digits, `.`, `_` or `-`, starting and ending wi
 digit — anything else is rejected with `invalid_argument` (400), and re-registering an existing
 name is `already_exists` (409). A new workload starts **open to launch by any tenant member**.
 
-Registration is durable: the current surface has no delete/unregister verb, so name workloads as
-long-lived roles (`codex-runner`), not per-task throwaways.
+Deleting is explicit too. The CLI has no dedicated subcommand for it yet — use the authenticated
+passthrough (an owner/admin action; a successful delete returns `{}`):
+
+```sh
+hiloop api /v1/workloads/codex-runner -X delete
+```
+
+A workload whose sandboxes are still running under its identity is a `conflict` (409) — stop them
+first. Past runs keep only the workload's **raw id** in their attribution: once the name is gone
+that id no longer resolves to a name, so still prefer long-lived role names (`codex-runner`) over
+per-task throwaways, and delete only workloads whose history you no longer need to read by name.
 
 ## Launch as it
 
@@ -76,23 +87,23 @@ launch as it:
 ```json
 {
   "workload": {
-    "id": "47406778-b03b-463c-91e6-488bdc9fab9b",
-    "name": "codex-runner",
+    "created_at": "2026-07-11T01:39:15.922827+00:00",
+    "created_by": "625121df-4564-40af-8934-112c8164516a",
     "description": "Codex fleet runner",
-    "launchAcl": {
+    "id": "47406778-b03b-463c-91e6-488bdc9fab9b",
+    "launch_acl": {
       "policy": "WORKLOAD_LAUNCH_POLICY_MEMBERS",
-      "userIds": []
+      "user_ids": []
     },
-    "createdBy": "625121df-4564-40af-8934-112c8164516a",
-    "createdAt": "2026-07-11T01:39:15.922827+00:00",
-    "updatedAt": "2026-07-11T01:39:15.922827+00:00"
+    "name": "codex-runner",
+    "updated_at": "2026-07-11T01:39:15.922827+00:00"
   }
 }
 ```
 
-`launchAcl.policy` is `WORKLOAD_LAUNCH_POLICY_MEMBERS` (any tenant member may launch — the default
-for a new workload, `userIds` empty) or `WORKLOAD_LAUNCH_POLICY_RESTRICTED` (only the listed
-`userIds`). The table view renders the same as `LAUNCH members`, or `LAUNCH restricted (n)` plus a
+`launch_acl.policy` is `WORKLOAD_LAUNCH_POLICY_MEMBERS` (any tenant member may launch — the default
+for a new workload, `user_ids` empty) or `WORKLOAD_LAUNCH_POLICY_RESTRICTED` (only the listed
+`user_ids`). The table view renders the same as `LAUNCH members`, or `LAUNCH restricted (n)` plus a
 `LAUNCHERS` row. Reading a name that isn't registered is `not_found` (404), exit 1.
 
 ## Control who may launch as it
@@ -121,3 +132,6 @@ record — so the new ACL is confirmed in the same call.
 3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run` and
    `hiloop sandbox create` both take it.
 4. Read it back anytime: `hiloop workloads show <name>` for the ACL, `list` for the registry.
+5. (Owner/admin) retire a role you no longer need: `hiloop api /v1/workloads/<name> -X delete` —
+   stop its sandboxes first (live ones are a `conflict`), and remember past runs keep only its
+   raw id.
