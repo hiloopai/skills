@@ -57,7 +57,7 @@ jobs:
           fi
 
           if ! git ls-remote --exit-code --tags origin "refs/tags/$version" >/dev/null 2>&1; then
-            git tag -a "$version" -m "hiloop skills $version"
+            git tag "$version"
             git push origin "refs/tags/$version"
           fi
 
