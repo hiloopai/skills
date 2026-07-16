@@ -15,7 +15,7 @@ groups for the common work — `hiloop sandbox` (lifecycle, exec, fork, snapshot
 executions), `hiloop secret`, `hiloop volume` (publish / mount / pre-warm large data), `hiloop lease`
 (serialize concurrent orchestrators), `hiloop workloads` (named machine identities to launch runs and
 sandboxes as), `hiloop runs` (list / tree / show / tail), `hiloop query` (read-only
-SQL over captured events and views), `hiloop annotate` / `annotation-schema`, `hiloop data-views`,
+SQL over captured events and views), `hiloop annotations` / `annotation-schema`, `hiloop data-views`,
 `hiloop run`, `hiloop login` — and a generic authenticated passthrough for any route without one:
 
 ```sh
