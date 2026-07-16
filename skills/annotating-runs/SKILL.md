@@ -4,14 +4,14 @@ description: >-
   Attach durable, structured judgments to hiloop telemetry — an experiment's outcome, an eval score,
   a metric reading, a human verdict — that you can later filter and aggregate on. Covers
   `hiloop annotation-schema` (register the named JSON-Schema the payload is validated against, and
-  promote the fields you query) and the one `hiloop annotate` verb: a whole run (`--run`), one event
+  promote the fields you query) and `hiloop annotations add`: a whole run (`--run`), one event
   (`--target-event`), a time window (`--range`), or a project (`--project`, run-less cross-run
   knowledge) — plus reading them back with `hiloop annotations list`. Promoted fields become named
   columns of the schema's `ann_<schema>` query view. Use
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.5.0
+  version: 0.5.1
 ---
 
 # Annotating runs
@@ -61,13 +61,13 @@ with `hiloop annotation-schema list` / `get <name>` / `archive <name>`.
 
 ## 2. Annotate a run (or one event, or a window)
 
-`hiloop annotate` stamps one annotation. Everything it carries goes in `--data` — a JSON object used
+`hiloop annotations add` stamps one annotation. Everything it carries goes in `--data` — a JSON object used
 verbatim as the payload (nested objects and arrays preserved; inline, `@file`, or `-` for stdin),
 validated against `--schema`. There are no special value flags — `score`, `outcome`, and `annotator`
 are just payload fields:
 
 ```sh
-hiloop annotate \
+hiloop annotations add \
   --run "$HILOOP_RUN_ID" \
   --schema experiment \
   --data '{"outcome":"worked","score":0.9833,"annotator":"code","note":"encoding arm"}'
@@ -97,7 +97,7 @@ A judgment that outlives any one run — "this approach dead-ends", a negative r
 winner — goes on the **project** instead of a run:
 
 ```sh
-hiloop annotate --project default --schema experiment \
+hiloop annotations add --project default --schema experiment \
   --data '{"outcome":"failed","note":"tokenizer swap: no effect on val_bpb"}'
 ```
 
