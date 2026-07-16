@@ -1,8 +1,18 @@
 # Setup per harness
 
 These skills follow the [Agent Skills open standard](https://agentskills.io) — a directory of
-`skills/<name>/SKILL.md` files plus a root [`AGENTS.md`](AGENTS.md). Most agent harnesses load them
-through one of two conventions, so in practice you only need one of these:
+`skills/<name>/SKILL.md` files plus a root [`AGENTS.md`](AGENTS.md). Install the verified bundle for
+your harness with the hiloop CLI:
+
+```sh
+hiloop skills install claude-code  # cursor | codex | gemini | copilot
+hiloop skills install all
+```
+
+Claude Code, Cursor, Codex, and Gemini installs are user-wide. Copilot installs into
+`.github/skills/` in the current repository. Re-run the same command to refresh an installation.
+
+Most agent harnesses load skills through one of two conventions:
 
 - **`~/.agents/skills/`** — the cross-harness skills directory honored by **Codex, Cursor, Gemini CLI,
   Amp, and Pi**. One symlink covers all five.
@@ -15,27 +25,15 @@ through one of two conventions, so in practice you only need one of these:
 > directory (below). The Agent Skills standard itself is an independent project
 > (`agentskills/agentskills`); only `AGENTS.md` is under the Linux Foundation.
 
-## The universal install (covers Codex, Cursor, Gemini CLI, Amp, Pi)
-
-```sh
-git clone https://github.com/hiloopai/skills.git ~/.hiloop-skills
-mkdir -p ~/.agents/skills
-for s in ~/.hiloop-skills/skills/*/; do
-  ln -sfn "$s" "$HOME/.agents/skills/$(basename "$s")"
-done
-```
-
-Then restart your agent and ask it to operate hiloop. To update: `git -C ~/.hiloop-skills pull`.
-
 ## At a glance
 
 | Harness | Native `SKILL.md` | `AGENTS.md` | One-line install | Where it loads skills |
 |---|---|---|---|---|
-| Claude Code | yes | yes (`CLAUDE.md`) | `/plugin marketplace add hiloopai/skills` | plugin, `.claude/skills/` |
-| OpenAI Codex | yes | yes | — (`~/.agents/skills/`) | `.agents/skills/`, `~/.agents/skills/` |
-| Cursor | yes (2.4+) | yes | — | `.cursor/skills/`, `~/.cursor/skills/`, `.agents/skills/` |
-| Gemini CLI | yes | opt-in | `gemini extensions install <url>` | `~/.gemini/skills/`, `.agents/skills/` |
-| GitHub Copilot | yes | yes | `gh skill install hiloopai/skills <skill>` | `.github/skills/`, `.claude/skills/`, `.agents/skills/` |
+| Claude Code | yes | yes (`CLAUDE.md`) | `hiloop skills install claude-code` | `~/.claude/skills/` |
+| OpenAI Codex | yes | yes | `hiloop skills install codex` | `~/.agents/skills/` |
+| Cursor | yes (2.4+) | yes | `hiloop skills install cursor` | `~/.cursor/skills/` |
+| Gemini CLI | yes | opt-in | `hiloop skills install gemini` | `~/.gemini/skills/` |
+| GitHub Copilot | yes | yes | `hiloop skills install copilot` | `.github/skills/` |
 | Cline | yes (3.48+) | yes | — | `.claude/skills/`, `~/.cline/skills/` |
 | Amp | yes | yes (primary) | — | `.agents/skills/`, `.claude/skills/` |
 | Pi | yes | yes | `pi install git:github.com/hiloopai/skills` | `.agents/skills/`, `.pi/skills/` |
@@ -46,39 +44,47 @@ Then restart your agent and ask it to operate hiloop. To update: `git -C ~/.hilo
 
 ## Claude Code
 
+```sh
+hiloop skills install claude-code
+```
+
+The Claude Code plugin marketplace is also supported:
+
 ```text
 /plugin marketplace add hiloopai/skills
 /plugin install hiloop@hiloop
 ```
 
-Or project-scoped without the marketplace: copy `skills/*` into `.claude/skills/`.
-
 ## OpenAI Codex
 
-Uses `~/.agents/skills/` (and `.agents/skills/` in a project). The [universal install](#the-universal-install-covers-codex-cursor-gemini-cli-amp-pi)
-above is the setup. Codex also reads a global `~/.codex/AGENTS.md` and per-project `AGENTS.md`.
+```sh
+hiloop skills install codex
+```
+
+Codex uses `~/.agents/skills/` (and `.agents/skills/` in a project). It also reads a global
+`~/.codex/AGENTS.md` and per-project `AGENTS.md`.
 
 ## Cursor
 
 ```sh
-# Global (all projects):
-git clone https://github.com/hiloopai/skills /tmp/hiloop-skills
-mkdir -p ~/.cursor/skills && cp -R /tmp/hiloop-skills/skills/* ~/.cursor/skills/
-# …or project-scoped & tracked:
-git submodule add https://github.com/hiloopai/skills .cursor/skills
+hiloop skills install cursor
 ```
 
 Reload the window after installing. Cursor 2.4+ also auto-loads `.agents/skills/` and `.claude/skills/`.
 
 ## Gemini CLI
 
-One line (this repo ships a `gemini-extension.json`):
+```sh
+hiloop skills install gemini
+```
+
+The native Gemini extension is also supported (this repo ships a `gemini-extension.json`):
 
 ```sh
 gemini extensions install https://github.com/hiloopai/skills
 ```
 
-Or use the universal `~/.agents/skills/` symlink, and add `AGENTS.md` to the context filenames in
+To load a root `AGENTS.md` as context too, add it to the context filenames in
 `~/.gemini/settings.json`:
 
 ```json
@@ -87,23 +93,24 @@ Or use the universal `~/.agents/skills/` symlink, and add `AGENTS.md` to the con
 
 ## GitHub Copilot
 
-Per-skill, with preview (skills aren't GitHub-verified — inspect first):
+Install the full verified bundle into the current repository:
+
+```sh
+hiloop skills install copilot
+```
+
+GitHub's per-skill installer remains available, with preview:
 
 ```sh
 gh skill preview hiloopai/skills <skill-name>
 gh skill install hiloopai/skills <skill-name>
 ```
 
-Or vendor all of them into a repo for the coding agent:
-
-```sh
-git clone https://github.com/hiloopai/skills /tmp/hiloop-skills
-mkdir -p .github/skills && cp -R /tmp/hiloop-skills/skills/* .github/skills/
-```
-
 In VS Code, enable `chat.useAgentsMdFile` to honor the root `AGENTS.md`.
 
 ## Cline
+
+Unsupported by `hiloop skills install`; use the manual fallback:
 
 ```sh
 git clone https://github.com/hiloopai/skills /tmp/hiloop-skills
@@ -115,6 +122,8 @@ Cline also auto-detects a root `AGENTS.md`.
 
 ## Amp
 
+Unsupported by `hiloop skills install`; use the manual fallback:
+
 ```sh
 git clone https://github.com/hiloopai/skills /tmp/hiloop-skills
 mkdir -p .agents/skills && cp -R /tmp/hiloop-skills/skills/* .agents/skills/      # project
@@ -125,6 +134,8 @@ Amp treats `AGENTS.md` as its primary instructions file, so the root `AGENTS.md`
 
 ## Pi
 
+Unsupported by `hiloop skills install`; use the native installer:
+
 ```sh
 pi install git:github.com/hiloopai/skills
 ```
@@ -133,7 +144,8 @@ Or the universal `~/.agents/skills/` symlink (Pi shares that directory).
 
 ## Windsurf / Cascade
 
-No native `SKILL.md`. Lead with `AGENTS.md` (auto-discovered at the workspace root, always-on):
+Unsupported by `hiloop skills install`. There is no native `SKILL.md`; use the manual fallback by
+placing `AGENTS.md` at the workspace root (always-on):
 
 ```sh
 git clone https://github.com/hiloopai/skills /tmp/hiloop-skills
@@ -145,7 +157,8 @@ frontmatter so Cascade loads it on relevance).
 
 ## Aider
 
-Aider doesn't auto-load instruction files — point it explicitly (read-only context):
+Aider is unsupported by `hiloop skills install` and doesn't auto-load instruction files. Download
+the repository's `AGENTS.md`, then point Aider at it explicitly (read-only context):
 
 ```yaml
 # .aider.conf.yml

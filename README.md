@@ -44,21 +44,16 @@ hiloop whoami
 
 …or headless (an agent / CI), skip the browser with a key: `export HILOOP_API_KEY="hil_…"`.
 
-**3. Install the skills.** Full per-harness instructions are in [`SETUP.md`](SETUP.md). The short version:
+**3. Install the skills.** Choose your harness, or install every supported target:
 
-- **Claude Code:** `/plugin marketplace add hiloopai/skills` then `/plugin install hiloop@hiloop`.
-- **Codex, Cursor, Gemini CLI, Amp, Pi** — the cross-harness skills directory:
+```sh
+hiloop skills install claude-code  # cursor | codex | gemini | copilot
+hiloop skills install all
+```
 
-  ```sh
-  git clone https://github.com/hiloopai/skills.git ~/.hiloop-skills
-  mkdir -p ~/.agents/skills
-  for s in ~/.hiloop-skills/skills/*/; do ln -sfn "$s" "$HOME/.agents/skills/$(basename "$s")"; done
-  ```
-
-- **GitHub Copilot:** `gh skill install hiloopai/skills <skill>`.
-- **Gemini CLI (one line):** `gemini extensions install https://github.com/hiloopai/skills`.
-- **Anything else / fallback:** drop the root [`AGENTS.md`](AGENTS.md) into your project — it's the
-  universal, always-on convention (Windsurf, Aider via `--read`, and every harness above honor it).
+`copilot` installs into the current repository; the other targets install for your user. Full target
+paths, native alternatives, and unsupported-harness fallback instructions are in
+[`SETUP.md`](SETUP.md).
 
 Then ask your agent to spin up a hiloop sandbox, fork it, and query the trace tree — the skills guide
 the rest.
