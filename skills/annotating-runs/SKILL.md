@@ -11,7 +11,7 @@ description: >-
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.5.1
+  version: 0.6.0
 ---
 
 # Annotating runs
@@ -33,13 +33,15 @@ so "show me only the branches that worked" is one SQL query later (see
 ## 1. Register a schema (once)
 
 Every annotation names a **schema** — a JSON Schema (draft 2020-12) its payload is validated against
-at ingest, so a label set stays consistent. Promote the fields you intend to query (`--promote
+at ingest, so a label set stays consistent. Schema names are shared across the whole tenant, so
+**namespace them per workstream** (`experiment.v1`, not `v1`) — re-registering a name someone else
+already uses silently creates its next version. Promote the fields you intend to query (`--promote
 field:type[:identity][:bloom]`, where `type` is `str` / `f64` / `i64` / `bool`) so they get columnar
 acceleration; `:identity` makes a field part of the latest-wins supersession key, and `:bloom` adds a
 point-lookup index (string fields only). Register it once per tenant:
 
 ```sh
-hiloop annotation-schema register experiment --json-schema '{
+hiloop annotation-schema register experiment.v1 --json-schema '{
     "type": "object",
     "properties": {
       "outcome":   { "enum": ["worked", "failed"] },
@@ -56,8 +58,11 @@ hiloop annotation-schema register experiment --json-schema '{
 
 `--json-schema` takes inline JSON, `@file`, or `-` (stdin). An unseen name starts at version 1; an
 existing name adds the next version after a backward-compatibility check. Registering also creates
-the schema's query view, `ann_experiment`, with the promoted fields as named columns. Manage schemas
-with `hiloop annotation-schema list` / `get <name>` / `archive <name>`.
+the schema's query views — `ann_<schema>` (current versions) and `ann_<schema>_history` (every
+stored version), with the promoted fields as named columns; the view name lowercases the schema
+name and turns every non-alphanumeric character into `_`, so `experiment.v1` is queried as
+`ann_experiment_v1`. Manage schemas with `hiloop annotation-schema list` / `get <name>` /
+`archive <name>`.
 
 ## 2. Annotate a run (or one event, or a window)
 
@@ -69,14 +74,17 @@ are just payload fields:
 ```sh
 hiloop annotations add \
   --run "$HILOOP_RUN_ID" \
-  --schema experiment \
+  --schema experiment.v1 \
   --data '{"outcome":"worked","score":0.9833,"annotator":"code","note":"encoding arm"}'
 ```
 
-- Inside a **captured run**, the run id is already in the environment as `HILOOP_RUN_ID` — which is
-  exactly how an in-sandbox experiment **self-annotates** its own result. **Metrics are recorded the
-  same way** — there is no stdout-metric convention; a training run annotates its own readings as it
-  goes (`--data '{"metrics":{"val_bpb":0.9932},"step":1200}'`).
+- Under the **`hiloop run` wrapper**, the run id is already in the child's environment as
+  `HILOOP_RUN_ID` — which is how a locally-wrapped experiment **self-annotates** its own result.
+  **Metrics are recorded the same way** — there is no stdout-metric convention; a training run
+  annotates its own readings as it goes (`--data '{"metrics":{"val_bpb":0.9932},"step":1200}'`).
+  A **sandbox** is different: the platform injects no credential or ambient run authority into the
+  guest, so annotate a sandbox run from an authenticated client outside it, using the run id
+  `hiloop sandbox run` printed.
 - `--target-event <event-id>` pins the annotation to one event; omit it for a run-level judgment.
 - `--range <start>..<end>` targets a time window instead — each endpoint an RFC 3339 timestamp
   (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query
@@ -97,7 +105,7 @@ A judgment that outlives any one run — "this approach dead-ends", a negative r
 winner — goes on the **project** instead of a run:
 
 ```sh
-hiloop annotations add --project default --schema experiment \
+hiloop annotations add --project default --schema experiment.v1 \
   --data '{"outcome":"failed","note":"tokenizer swap: no effect on val_bpb"}'
 ```
 
@@ -124,12 +132,12 @@ schema's `ann_<schema>` view:
 ```sh
 hiloop query --sql "
   SELECT run_id, lineage_path, outcome, score
-  FROM ann_experiment
+  FROM ann_experiment_v1
   WHERE outcome = 'worked' AND score > 0.95
   ORDER BY score DESC"
 ```
 
-`hiloop runs tree <root-run-id> --columns 'experiment:score'` renders the latest rollup of a
+`hiloop runs tree <root-run-id> --columns 'experiment.v1:score'` renders the latest rollup of a
 promoted field next to each run in the lineage tree — the fastest way to eyeball a fan-out.
 
 An unpromoted field stays in the JSON payload — read it by name from the events table with

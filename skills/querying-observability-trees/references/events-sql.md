@@ -35,8 +35,12 @@ Every query runs through a gateway that:
 - `ts_wall_ns` — wall-clock timestamp in nanoseconds (what `--since`/`--until` match against);
   `ts_logical` orders events that share a nanosecond.
 - `event_time` — the same instant as a SQL timestamp (use for `date_trunc`, ordering).
-- `signal` — event kind: `exec` (process lifecycle), `llm` (model calls), `log` (stdio), `net`
-  (other network traffic), `metric` (resource samples), `annotation` (the most common filter axis).
+- `signal` — event family (the most common filter axis). Captured signals record what the workload
+  did: `llm` (model-provider HTTP exchanges), `net` (every other HTTP exchange), `log` (stdout/
+  stderr and OTLP logs), `exec` (command lifecycle: what ran, exit code, duration), `metric`
+  (resource samples). Platform signals flow regardless of capture: `runtime` (sandbox state
+  transitions, operation lifecycle, queue latency), `egress` (network policy decisions), `lease`
+  (coordination-lease transitions). And `annotation` is knowledge you write.
 - `name` — operation/event name (e.g. `http.request`, `process.start`, `process.stdout`).
 - `attributes_json` — signal-specific fields as a JSON string (the catch-all; wide — keep it last or
   out of table output).
@@ -124,7 +128,7 @@ Only the winning branches, by annotation — through the schema's view:
 
 ```sql
 SELECT lineage_path, score, outcome
-FROM ann_experiment
+FROM ann_experiment_v1
 WHERE run_id = '01K6Z…' AND outcome = 'pass' AND score > 0.9
 ORDER BY score DESC
 ```
@@ -133,8 +137,9 @@ ORDER BY score DESC
 
 Two kinds of named views resolve as `FROM`-clause tables alongside `events`:
 
-- **`ann_<schema>`** — auto-created when you register an annotation schema (schema `experiment` →
-  view `ann_experiment`; non-alphanumeric characters in the name become `_`). Columns: each
+- **`ann_<schema>`** — auto-created when you register an annotation schema (the schema name is
+  lowercased and every non-alphanumeric character becomes `_`, so schema `experiment.v1` → view
+  `ann_experiment_v1`; a companion `ann_<schema>_history` view holds every stored version). Columns: each
   **promoted** field under its declared name, plus the annotation's identity and anchors
   (`event_id`, `run_id`, `root_run_id`, `lineage_path`, `project_id`, `principal`, `ts_wall_ns`,
   `target_event_id`, `range_start_ns`, `range_end_ns`). The `ann_` namespace is reserved.

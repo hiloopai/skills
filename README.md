@@ -1,7 +1,8 @@
 # hiloop skills
 
 Open-source [Agent Skills](https://agentskills.io) that teach AI coding agents to operate
-**[hiloop](https://hiloop.ai)** — isolated, forkable agent sandboxes with tree-native observability.
+**[hiloop](https://hiloop.ai)** — isolated agent sandboxes with branchable, versioned workspaces
+and tree-native observability.
 
 The skills follow the open Agent Skills standard, so they work across harnesses (Claude Code, Cursor,
 Codex, and others). They drive hiloop through the `hiloop` **CLI** — the supported agent interface —
@@ -12,15 +13,15 @@ definitions every turn.
 
 | Skill | Use it to |
 |---|---|
-| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage scope and keys |
-| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; bring your own image, request resources |
-| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands; stream + steer long-running processes; move files in/out |
-| [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot state and fork into branches |
-| [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a sandbox a credential it uses but never sees (the secret broker) |
-| [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish large data (datasets, model caches, checkpoints) as versioned volumes sandboxes mount instead of copying |
+| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
+| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; pick a profile or image, request resources |
+| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered, one-shot, or over SSH); move files in/out |
+| [`persisting-and-branching-workspaces`](skills/persisting-and-branching-workspaces/SKILL.md) | Seal a workspace into a revision on stop, resume it exactly, branch N sandboxes from one revision |
+| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | A long-lived, owner-only devbox: managed SSH, rsync, access grants, suspend-and-wake |
+| [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a run a credential it uses but never sees (the secret broker) |
 | [`coordinating-with-leases`](skills/coordinating-with-leases/SKILL.md) | Serialize concurrent agents with named, TTL-bounded leases (at most one live holder per name) |
 | [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch runs/sandboxes as a registered machine identity (a workload) and control who may launch as it |
-| [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its fork-tree telemetry |
+| [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
 | [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | [`reporting-product-bugs`](skills/reporting-product-bugs/SKILL.md) | Report a hiloop bug (or send product feedback) to the hiloop team with `hiloop feedback` |
 
@@ -55,8 +56,8 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-Then ask your agent to spin up a hiloop sandbox, fork it, and query the trace tree — the skills guide
-the rest.
+Then ask your agent to spin up a hiloop sandbox, run work in it, and query the trace tree — the
+skills guide the rest.
 
 ## Develop
 
