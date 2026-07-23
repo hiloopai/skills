@@ -12,7 +12,7 @@ description: >-
   pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
   control who may launch as one.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Launching as workloads
@@ -56,12 +56,13 @@ per-task throwaways, and delete only workloads whose history you no longer need 
 
 ## Launch as it
 
-Both launch verbs take the same flag, and the value must be `workload/<name>` — a bare name is
-rejected client-side:
+The launch verbs take the same flag (`hiloop run`, `hiloop sandbox create`, and the one-shot
+`hiloop sandbox run`), and the value must be `workload/<name>` — a bare name is rejected
+client-side:
 
 ```sh
 hiloop run --as workload/codex-runner -- codex "fix the failing test"
-hiloop sandbox create --as workload/codex-runner --wait
+hiloop sandbox create --profile gvisor-cpu --as workload/codex-runner --wait
 ```
 
 The work is then attributed to that workload; you must hold launch rights on it. On a sandbox,
@@ -142,8 +143,8 @@ same call.
 1. Register the role once: `hiloop workloads create <name> --description "…"`.
 2. (Owner/admin) scope it: `allow-launch <name> --user … --service-account …` for a restricted
    role (members and/or CI keys), or leave a new workload open to all members.
-3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run` and
-   `hiloop sandbox create` both take it.
+3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run`,
+   `hiloop sandbox create`, and `hiloop sandbox run` all take it.
 4. Read it back anytime: `hiloop workloads show <name>` for the ACL, `list` for the registry.
 5. (Owner/admin) retire a role you no longer need: `hiloop workloads delete <name>` (confirms
    first; `--yes` to skip) — stop its sandboxes first (live ones are a `conflict`), and remember

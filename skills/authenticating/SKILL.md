@@ -3,11 +3,11 @@ name: authenticating
 description: >-
   Authenticate to hiloop from a terminal or headless agent so the hiloop CLI and API can be used.
   Covers `hiloop login` (the default — a browser or device flow), the HILOOP_API_KEY environment
-  variable for CI and headless agents, verifying identity with `hiloop whoami`, and org-vs-tenant
-  scope. Use this when a hiloop command returns 401 / unauthenticated, before the first hiloop call
+  variable for CI and headless agents, verifying identity with `hiloop whoami`, and tenant scope.
+  Use this when a hiloop command returns 401 / unauthenticated, before the first hiloop call
   in a session, or when setting up credentials for an agent.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # Authenticating to hiloop
@@ -35,6 +35,10 @@ secret sits on disk**. The browser (loopback) flow is the default when a local b
 verification URL and code, a human approves out-of-band, and the CLI caches the session. After login,
 `hiloop whoami` confirms who you are.
 
+Point the CLI at your deployment first: save a named context (`hiloop config set-context <name>
+--api-url <url>`, then `hiloop config use-context <name>`) or set `HILOOP_API_URL`. Login enters
+your **default tenant**; pass `--tenant-id` to enter another.
+
 > Already have a dashboard key and want it stored once? `hiloop login --with-key` reads a key from
 > stdin (`echo "$KEY" | hiloop login`), verifies it, and stores it — the scriptable variant of login.
 
@@ -45,8 +49,7 @@ environment:
 
 ```sh
 export HILOOP_API_KEY="hil_…"           # provided to the agent out-of-band; never print or commit it
-# Optional: point at a non-default environment (default is https://api.hiloop.ai)
-export HILOOP_API_URL="https://api.hiloop.ai"
+export HILOOP_API_URL="https://api.example.com"   # your deployment's API edge (or use a saved context)
 ```
 
 ## Verify first: `hiloop whoami`
@@ -76,25 +79,25 @@ so name keys for who acts with them (`laptop`, `ci-bot`):
 hiloop keys create agent-ci               # acts as the tenant (--kind service_account, the default)
 hiloop keys create laptop --kind user     # acts on behalf of you
 hiloop keys list                                 # metadata only; never reveals the secret
-hiloop keys revoke <key-id>                      # revoke when done
+hiloop keys revoke <key-id-or-name>              # revoke when done; idempotent
 ```
 
 Prefer a **tenant-scoped** key for runtime/sandbox work. Treat a leaked key as compromised and revoke
 it. (For credentials a *sandbox* uses but the agent must never see — e.g. a model provider key — use
 the secret broker instead: the `managing-secrets` skill.)
 
-## Scope: org vs tenant
+## Scope: which tenant you act in
 
-A login lands at **org scope** (manage the org, tenants, members, org keys). Runtime work —
-sandboxes, executions, snapshots, forks — is **tenant-scoped**. Enter a tenant before sandbox work:
+Runtime work — sandboxes, executions, runs — is **tenant-scoped**. A fresh login enters your
+default tenant (`--tenant-id` names another); to change later:
 
 ```sh
-hiloop whoami                # check the current scope
-hiloop tenant switch <tenant-id>   # re-scope the session to a tenant
+hiloop whoami                        # check the current tenant
+hiloop tenant switch <tenant-id>     # re-scope the session to another tenant
+hiloop tenant switch <tenant-id> --set-default   # …and make it your sticky default
 ```
 
-If a sandbox call returns `403 NotOrgScoped` or a scope error, you are at the wrong scope — switch
-into the tenant and retry.
+If a runtime call fails with a scope error, you are in the wrong tenant — switch and retry.
 
 ## Never
 

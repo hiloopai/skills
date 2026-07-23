@@ -1,23 +1,23 @@
 ---
 name: creating-sandboxes
 description: >-
-  Create, inspect, and delete hiloop sandboxes — isolated, snapshottable environments an agent runs
-  in. Covers the create→poll-until-ready→delete lifecycle with the dedicated `hiloop sandbox`
-  commands, projects, bring-your-own images (any OCI reference or a build artifact), resource requests
-  (cpus/memory/disk/architecture), capability requirements, volume mounts, capture, stop/resume
-  semantics (when the workspace survives), and the desired-vs-observed state model. Use when asked to
-  spin up / provision / launch a hiloop sandbox or environment, choose its image, stop or resume one,
-  or tear one down.
+  Create, inspect, and delete hiloop sandboxes — isolated environments an agent runs in. Covers the
+  create→poll-until-ready→delete lifecycle with the dedicated `hiloop sandbox` commands, projects,
+  the required image-or-profile choice, resource requests (cpus/memory/disk/GPUs/architecture),
+  managed networking and egress mode, telemetry capture, workspace revisions, lifetime limits
+  (idle timeout / max runtime), secret-binding caveats, stop/resume semantics, and the
+  desired-vs-observed state model. Use when asked to spin up / provision / launch a hiloop sandbox
+  or environment, choose its image or profile, stop or resume one, or tear one down.
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # Creating sandboxes
 
-A **sandbox** is an isolated, snapshottable environment your agent runs in. It starts from an image
-and a resource request, inside a **project**. The lifecycle is: create → poll until ready → use →
-delete. Drive it with the dedicated `hiloop sandbox` commands; for fields not exposed as a flag, drop
-to `hiloop api`, the authenticated passthrough for any REST route.
+A **sandbox** is an isolated environment your agent runs in. It boots from an explicit **profile or
+image**, with a resource request, inside a **project**. The lifecycle is: create → poll until ready
+→ use → delete. Drive it with the dedicated `hiloop sandbox` commands; for fields not exposed as a
+flag, drop to `hiloop api`, the authenticated passthrough for any REST route.
 
 > Authenticate first (see the `authenticating` skill) and make sure you are **tenant-scoped** —
 > sandbox work is tenant-scoped.
@@ -35,155 +35,146 @@ environment variable > the active context's default project (`hiloop config set-
 
 ## 2. Create the sandbox
 
+**Exactly one of `--profile` or `--image` is required** — there is no default environment:
+
 ```sh
 hiloop sandbox create \
-  --project <project-id> \
-  --image ghcr.io/acme/agent-base:latest \
+  --project <project> \
+  --profile gvisor-cpu \
   --name experiment-a \
   --cpus 2 --memory-mb 4096 --disk-mb 20480 \
   --wait
 ```
 
-Create is **asynchronous**: by default it prints the new sandbox id and an operation id and returns.
-Pass `--wait` to block until the sandbox is running. Omit any resource flag to take the server
-default; `--arch` is `x86_64` (or `aarch64`). `--output json` prints the raw body — capture the id.
+- `--profile <name>` selects a **named runtime profile** the deployment publishes (the hosted CPU
+  profile is `gvisor-cpu`; your deployment may publish others — a GPU profile, a devbox plan). The
+  platform resolves it to a preconfigured runtime image. This is the right default choice.
+- `--image <ref>` boots an **OCI image** (e.g. `ubuntu:24.04`) instead. The selected sandbox cell
+  must map it to an immutable environment plan — an image the deployment doesn't advertise is
+  rejected, never silently substituted. Pin production environments by digest
+  (`repository@sha256:…`); a tag is not an environment identity.
+
+Create is **asynchronous**: by default it prints the new sandbox id and an operation id and
+returns. Pass `--wait` to block until the sandbox is running. `--output json` prints the raw body —
+capture the id.
 
 To make a retry safe, pass `--idempotency-key <key>`: re-running with the same key returns the
 original sandbox instead of creating a second one, and with a key set the CLI retries ambiguous
 failures (a 5xx, a lost response) itself, up to 3 attempts. Reusing a key with a **different**
-request fails with `idempotency_conflict` (409). Omitted, every invocation creates fresh. The same
-flag is on `fork` / `snapshot` / `restore` (see `snapshotting-and-forking`).
+request fails with `idempotency_conflict` (409). Omitted, every invocation creates fresh.
 
 ### Resources
 
-`--cpus`, `--memory-mb`, `--disk-mb`, and `--arch` size the sandbox. Ask for what the workload needs;
-the platform places it on a runtime that can satisfy the request.
+`--cpus`, `--memory-mb`, `--disk-mb` size the sandbox (omit any to take the server default);
+`--arch` is `x86_64` (default) or `aarch64`. For accelerators, `--gpus <count>` requests GPU
+devices or isolated slices, and `--gpu-model a100,h100` (requires `--gpus`) lists acceptable models
+in preference order. A request no runtime can satisfy fails fast rather than placing the sandbox
+somewhere it can't run.
+
+### Network and egress
+
+By default the sandbox keeps the runtime's non-managed network mode. `--network-mode sandbox`
+requests the cell's managed network and applies `--egress-mode`: `allow` (default) permits outbound
+traffic — package installs, git clones — and `deny` blocks it. Use the managed mode whenever the
+workload needs the network deliberately configured.
 
 ### Capture
 
-`--capture on` (the default) records the sandbox's LLM/tool/HTTP activity as queryable telemetry; pass
-`--capture off` to run without instrumentation. (Querying that telemetry is the
-`querying-observability-trees` skill.)
+`--capture on` records the sandbox's activity as queryable telemetry **where the runtime lane
+supports it natively** — the default is `off`, and requests for unavailable semantics fail closed
+rather than pretending. For capturing an agent's model/tool/HTTP activity today, wrap the command
+with `hiloop run` (see `querying-observability-trees`); platform lifecycle events
+(`signal = 'runtime'`) flow for every sandbox regardless of this flag.
 
-### Bring your own image
+### Workspace (durable state)
 
-Omit `--image` to get the **managed default base** — it carries the in-sandbox control agent that
-`exec` / `start` / `stream` need, and it is generic on purpose: start from it and install
-dependencies once the sandbox is ready — `pip install …`, `npm i -g …`, `apt-get install …` — via
-`running-commands-in-a-sandbox`.
+The image root is read-only; the sandbox gets writable scratch at `/tmp` and a workspace at
+`/workspace`. That scratch is **ephemeral** — to make the workspace durable (survive stop/resume,
+seed other sandboxes), attach an exact versioned revision at create with `--workspace-revision` +
+`--workspace-target`. That whole model — sealing on stop, restoring on resume, branching many
+sandboxes from one revision — is the `persisting-and-branching-workspaces` skill.
 
-`--image` takes any public OCI reference (a tag like `python:3.12-slim` or `node:22-bookworm`), but
-an arbitrary image boots **without** the control agent, so `exec`/`start`/`stream` won't reach it —
-bring your own image only when you have an agent-carrying base and the install step is heavy enough
-to be worth baking in.
+### Lifetime: idle timeout and max runtime
 
-To **pin a digest** or use a **build artifact** (sources `--image` can't express), create over the
-passthrough instead:
+- `--idle-timeout <secs>` — how long the sandbox may sit without activity before it's
+  automatically stopped (server default 1800s/30min; 60–86400). Activity means real sandbox
+  operations — executing a command, sending input — not an open idle connection.
+- `--no-idle-reclaim` — disable the inactivity clock entirely (mutually exclusive with
+  `--idle-timeout`); explicit stop/delete and any max runtime still apply.
+- `--max-runtime <secs>` — an absolute lifetime cap regardless of activity (60–86400). Omitted,
+  there is no cap: an actively-used sandbox may run indefinitely and only going idle reclaims it.
 
-```sh
-hiloop api /v1/sandboxes -X post -d '{
-    "projectId": "<project-id>",
-    "name": "experiment-a",
-    "image": { "oci": { "reference": "node:22-bookworm", "digest": "sha256:…" } },
-    "resources": { "cpus": 2, "memoryMb": "4096", "diskMb": "20480" }
-  }'
-# …or a build artifact produced earlier in your pipeline:
-#   "image": { "buildArtifact": { "artifactRef": "<artifact-ref>" } }
-```
+### Secrets: fail-closed for now
 
-### Mount a volume
+`--secret <name>` (repeatable) requests a stored sandbox-secret binding. **Current production cells
+do not advertise native secret injection, so a create with a secret binding fails closed** — the
+sandbox is never silently created without its credential. Until native injection ships, bind
+secrets on `hiloop run` instead (see `managing-secrets`), and never work around it by passing a
+plaintext credential into a sandbox env, image, or command line.
 
-For large shared input data (datasets, model caches), mount a **volume** at create instead of
-copying bytes in. Mounts are not a `create` flag — pass `volumeMounts` over the passthrough
-(read-only; the volume's current version is pinned at admission). Publishing and pre-warming
-volumes is the `managing-volumes` skill:
+### Identity
 
-```sh
-hiloop api /v1/sandboxes -X post -d '{
-    "projectId": "<project-id>",
-    "name": "trainer-1",
-    "resources": { "cpus": 4, "memoryMb": "8192" },
-    "volumeMounts": [ { "volume": "imagenet-160", "targetPath": "/data/imagenet" } ]
-  }'
-```
+`--as workload/<name>` launches the sandbox as a registered machine identity instead of you — see
+`launching-as-workloads`.
+
+### Capabilities
+
+Runtime features (managed SSH, GPUs, streaming exec, …) are **capabilities** each deployment
+advertises with an explicit support level — discover the current set with
+`hiloop api /v1/runtime/capabilities`, and treat what it reports as the source of truth. A create
+that asks for something the deployment doesn't support fails fast at admission
+(`unsupported_capability`), an impossible shape is `requirements_unsatisfiable`, and temporarily
+committed capacity is `capacity_exhausted` (retryable) — a sandbox is never accepted and then
+silently provisioned differently. To pin explicit capability floors, pass
+`requested_capabilities` (a `key` with `minimum_support` / `minimum_maturity`) over the `hiloop
+api` passthrough, and request only what the workload actually needs.
 
 ## 3. Poll until ready
 
-hiloop reconciles sandboxes asynchronously: the **desired** state you asked for is tracked separately
-from the **observed** state it has reached. Do not use a sandbox until it is ready. `--wait` blocks for
-you; without it, poll:
+hiloop reconciles sandboxes asynchronously: the **desired** state you asked for is tracked
+separately from the **observed** state it has reached. Do not use a sandbox until it is running.
+`--wait` blocks for you; without it, poll:
 
 ```sh
-hiloop sandbox get <sandbox-id>            # inspect observed state
-hiloop sandbox list --state running        # or list by observed state
+hiloop sandbox get <sandbox>            # inspect observed state (id or name)
+hiloop sandbox list --state running     # or list by observed state
 ```
 
-Poll until the sandbox reports ready (with a sane timeout — don't poll forever), then run commands in
-it (see `running-commands-in-a-sandbox`).
+Poll with a sane timeout — don't poll forever — then run commands in it
+(see `running-commands-in-a-sandbox`).
 
-## 4. Capabilities
-
-If the workload needs a specific runtime feature (fast memory snapshots, GPUs), request it through the
-sandbox's capability requirements; hiloop places it on a runtime that satisfies them. Capability
-requirements aren't a `create` flag, so discover and pin them over the passthrough:
-
-```sh
-hiloop api /v1/runtime/capabilities
-```
-
-Each requirement is a `key` plus optional floors — `minimumSupport` and `minimumMaturity` — so you can
-demand not just that a capability exists but that it's supported and mature enough:
-
-```sh
-hiloop api /v1/sandboxes -X post -d '{
-    "projectId": "<project-id>",
-    "name": "gpu-job",
-    "image": { "oci": { "reference": "nvidia/cuda:12.4.0-runtime-ubuntu22.04" } },
-    "resources": { "cpus": 8, "memoryMb": "32768", "diskMb": "51200" },
-    "requestedCapabilities": [
-      { "key": "gpu", "minimumSupport": "supported", "minimumMaturity": "ga" }
-    ]
-  }'
-```
-
-Use the exact `key`/`support`/`maturity` strings the capabilities endpoint reports — don't guess. If
-no runtime satisfies the requirement, creation fails fast rather than placing the sandbox somewhere it
-can't run.
-
-## 5. Stop, resume, or delete
+## 4. Stop, resume, or delete
 
 All are asynchronous and idempotent by sandbox id. `stop` brings the sandbox to rest in a stopped
 state and keeps its record inspectable; `delete` tears it down entirely:
 
 ```sh
-hiloop sandbox stop <sandbox-id> --wait      # come to rest, stay inspectable
-hiloop sandbox resume <sandbox-id> --wait    # wake it back up
-hiloop sandbox delete <sandbox-id> --wait    # tear down
+hiloop sandbox stop <sandbox> --wait      # come to rest, stay inspectable
+hiloop sandbox resume <sandbox> --wait    # wake it back up
+hiloop sandbox delete <sandbox> --wait    # tear down
 ```
 
-**Whether the workspace survives a stop depends on the provider.** Where state is preserved,
-`resume` brings the sandbox back with its filesystem and processes intact. Otherwise the workspace
-does **not** survive the stop, and the stop's operation result carries a warning saying so — read
-it (the CLI prints it at stop time on v0.6.0+), and **snapshot first** (`snapshotting-and-forking`)
-when you need a restore point.
+**Whether the filesystem survives a stop is explicit, never lucky.** With a versioned workspace
+attached at create, stop **seals** it and resume restores the exact bytes under a new runtime
+generation — process and memory state never survive. Without one, the stop is destructive: the
+stop result says so, and `resume` fails with `workspace_continuity_unavailable` unless you pass
+`--fresh-workspace` to accept an empty workspace. Details and the branching pattern:
+`persisting-and-branching-workspaces`.
 
-Resume is honest about that: resuming an already-running sandbox succeeds without effect, but when
-the stop tore the workload down, `resume` can only provision a fresh, empty workspace — it **fails
-unless you pass `--fresh-workspace`** (the previous contents are not recovered; restore a snapshot
-instead to get captured data back).
-
-If a sandbox ends up **failed**, `hiloop sandbox get` shows why: a stable machine-readable failure
-code (for example `runtime_unavailable` or `workspace_lost`) plus a human-readable message —
-diagnose from that instead of guessing.
+If a sandbox ends up **failed**, `hiloop sandbox get` shows a stable machine-readable failure code
+plus a human-readable message — diagnose from that instead of guessing.
 
 Always clean up sandboxes you created for a task unless told to keep them.
 
 ## Tips
 
 - `hiloop sandbox list` / `get` accept `--output json`; capture the `id` fields for the next call.
-- Lifecycle commands (`create`, `stop`, `resume`, `delete`, `fork`, `snapshot`, `restore`) are
-  async — pass `--wait` to block, or poll `get`/`list` yourself.
-- `hiloop usage` prints a point-in-time fleet snapshot — active sandbox counts by state and reserved
-  resources against capacity — for the tenant, or one project with `--project`.
-- For any route without a dedicated flag, `hiloop api <path> [-X post|delete] [-d '<json>']` reaches
-  the whole REST surface.
+  Names are not unique — the id stays the canonical handle.
+- Lifecycle commands (`create`, `stop`, `resume`, `delete`) are async — pass `--wait` to block, or
+  poll `get`/`list` yourself.
+- `hiloop sandbox run` creates a sandbox that runs **one command as its purpose** and stops when it
+  exits — the fire-and-forget shape (see `running-commands-in-a-sandbox`).
+- `hiloop usage` prints a point-in-time snapshot — active sandbox counts by state, reserved
+  resources, and workspace limits — for the tenant, or one project with `--project`.
+- For any route without a dedicated flag, `hiloop api <path> [-X post|delete] [-d '<json>']`
+  reaches the whole REST surface.
