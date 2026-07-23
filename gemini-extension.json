@@ -1,6 +1,6 @@
 {
   "name": "hiloop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Operate hiloop — agent sandboxes with branchable workspaces and tree-native observability — from the hiloop CLI. Bundles the hiloop Agent Skills.",
   "contextFileName": "AGENTS.md"
 }

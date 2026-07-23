@@ -3,7 +3,7 @@
   "name": "hiloop",
   "displayName": "hiloop",
   "description": "Operate hiloop from your agent: authenticate, create sandboxes, run commands, branch sealed workspaces, and query run-lineage telemetry via the hiloop CLI.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "hiloop",
     "url": "https://hiloop.ai"
