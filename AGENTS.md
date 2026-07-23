@@ -54,6 +54,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 
 | Skill | Use it to |
 |---|---|
+| `autoresearch` | Run a metric-driven research loop: ideas, bounded arms, honest annotations, ensemble, leaderboard |
 | `authenticating` | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
 | `creating-sandboxes` | Create / inspect / delete sandboxes; profiles and images, resources, networking, lifetimes |
 | `running-commands-in-a-sandbox` | Run commands (buffered `exec`, one-shot `sandbox run`, SSH); move files in/out |

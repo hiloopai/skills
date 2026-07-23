@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "hiloop.idea",
+  "description": "One research idea, superseded in place by headline as its status evolves.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["headline"],
+  "properties": {
+    "id": {"type": "string"},
+    "headline": {"type": "string"},
+    "hypothesis": {"type": "string"},
+    "change": {"type": "string"},
+    "rationale": {"type": "string"},
+    "idea_family": {"type": "string"},
+    "status": {"type": "string", "enum": ["proposed", "testing", "worked", "failed"]},
+    "outcome": {"type": "string", "enum": ["worked", "failed", "tradeoff"]},
+    "annotator": {"type": "string"},
+    "score": {"type": "number"},
+    "metric": {
+      "type": "object",
+      "required": ["name", "value", "direction", "valid"],
+      "properties": {
+        "name": {"type": "string"},
+        "value": {"type": "number"},
+        "direction": {"type": "string", "enum": ["higher_better", "lower_better"]},
+        "valid": {"type": "boolean"},
+        "baseline": {"type": "number"},
+        "delta": {"type": "number"}
+      }
+    },
+    "evidence_event_ids": {"type": "array", "items": {"type": "string"}}
+  }
+}

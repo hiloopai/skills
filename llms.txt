@@ -10,6 +10,7 @@
 
 ## Skills
 
+- [autoresearch](skills/autoresearch/SKILL.md): run a complete metric-driven research loop — propose diverse ideas, execute bounded arms, record evolving idea cards and immutable scored experiments, ensemble winners, and expose a leaderboard; includes a gated sandboxed-arms preview.
 - [authenticating](skills/authenticating/SKILL.md): sign in with hiloop login (default) or HILOOP_API_KEY (headless/CI), whoami, tenant scope, key management.
 - [creating-sandboxes](skills/creating-sandboxes/SKILL.md): hiloop sandbox create / poll-ready / delete; projects, the required --profile-or---image choice, resources (cpus/memory/disk/GPUs), managed network + egress mode, capture, workspace attachment, idle-timeout / max-runtime, secret-binding caveats.
 - [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): buffered `hiloop sandbox exec` (timeout ceiling, output caps, exit codes, idempotency keys), one-shot `hiloop sandbox run` (--rm/--wait), interactive `hiloop sandbox ssh` + port forwarding, moving files via /workspace, rsync, and execution artifacts.
@@ -24,6 +25,7 @@
 
 ## Reference
 
+- [fleet dashboard](tools/fleet-dashboard/README.md): public Rich terminal dashboard for runs, lineage, experiment leaderboard, and recent events.
 - [events SQL reference](skills/querying-observability-trees/references/events-sql.md): the read-only SQL query surface — the events table columns, query rules, example SELECTs.
 
 ## More

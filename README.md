@@ -13,6 +13,7 @@ definitions every turn.
 
 | Skill | Use it to |
 |---|---|
+| [`autoresearch`](skills/autoresearch/SKILL.md) | Run an autonomous research loop with evolving idea cards, scored experiments, an ensemble, and a leaderboard |
 | [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
 | [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; pick a profile or image, request resources |
 | [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered, one-shot, or over SSH); move files in/out |
@@ -58,6 +59,10 @@ paths, native alternatives, and unsupported-harness fallback instructions are in
 
 Then ask your agent to spin up a hiloop sandbox, run work in it, and query the trace tree — the
 skills guide the rest.
+
+For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
+[`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public
+[`fleet-dashboard`](tools/fleet-dashboard/README.md).
 
 ## Develop
 
