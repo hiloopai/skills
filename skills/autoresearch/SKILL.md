@@ -8,7 +8,7 @@ description: >-
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
 metadata:
-  version: 0.1.0
+  version: 0.1.1
 ---
 
 # Run an autonomous research loop
@@ -32,6 +32,8 @@ staging rehearsal is green. Never silently switch between them.
 - Bound each experiment by time and total budget. Stop creating arms before the wrap-up budget.
 - Never place a hiloop API key or model-provider credential in a script, sandbox command, file,
   annotation, log, or artifact.
+- Spawn every local experiment under a clean, allowlisted environment. The trusted orchestrator
+  needs hiloop authority to annotate; candidate scripts do not and must never inherit it.
 
 ## 1. Orient and reuse a project
 
@@ -147,17 +149,28 @@ Before execution, rewrite the full card with `status: "testing"`. After executio
 
 ## 5. Execute the proven local loop
 
-Run small candidate scripts with the task's pinned environment, normally:
+Run every candidate, retry, refinement, and ensemble script with the task's pinned environment and
+only the non-secret process settings it needs:
 
 ```sh
-uv run python experiment.py
+env -i \
+  HOME="$HOME" \
+  PATH="$PATH" \
+  TMPDIR="${TMPDIR:-/tmp}" \
+  uv run python experiment.py
 ```
+
+Do not replace this with a plain `uv run`, `python`, or inherited shell environment. In particular,
+the child must not receive `HILOOP_API_KEY`, `HILOOP_RUN_ID`, model-provider keys, cloud credentials,
+or the agent's other environment variables. If a task truly needs configuration, add each reviewed,
+non-secret variable to this allowlist by name.
 
 For each idea, in order:
 
 1. Mark the complete idea card `testing`.
 2. Write the smallest candidate that uses the documented loader and scorer.
-3. Execute it with the arm timeout. Allow at most one bug-fix or refinement retry.
+3. Execute it with the clean environment above and the arm timeout. Allow at most one bug-fix or
+   refinement retry.
 4. Copy the numeric token from the emitted `HILOOP_METRIC` line without changing it.
 5. Immediately add one immutable experiment row with a unique `experiment_id`.
 6. Save predictions for valid candidates.
