@@ -8,7 +8,7 @@ description: >-
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
 metadata:
-  version: 0.1.1
+  version: 0.1.2
 ---
 
 # Run an autonomous research loop
@@ -252,6 +252,10 @@ uv run tools/fleet-dashboard/dashboard.py \
 ```
 
 ## Preview: sandboxed experiment arms
+
+> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
+> this section uses currently return a rebuild notice instead of executing; this path returns with
+> the new runtime. The proven local path above is unaffected.
 
 **Gate:** do not select this path for a live run until the operator explicitly confirms a full
 staging rehearsal is green. The proven local path above remains the default. To flip after that

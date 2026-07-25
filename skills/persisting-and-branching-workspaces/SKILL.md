@@ -9,10 +9,14 @@ description: >-
   asked to save, checkpoint, suspend, restore, or branch a sandbox's state, or to start several
   attempts from an identical filesystem.
 metadata:
-  version: 0.6.0
+  version: 0.6.1
 ---
 
 # Persisting and branching workspaces
+
+> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
+> this skill documents currently return a rebuild notice instead of executing. The workflow returns
+> with the new runtime; until then, read this skill as reference, not runnable steps.
 
 A sandbox's durable state lives in its **workspace** — a versioned filesystem attached at create.
 Stopping the sandbox **seals** the workspace into an immutable **revision**; resuming restores that

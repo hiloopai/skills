@@ -9,10 +9,15 @@ description: >-
   suspend-and-wake loop. Use when asked to set up a devbox, a persistent remote dev environment,
   SSH into a sandbox, or share one with a teammate.
 metadata:
-  version: 0.1.0
+  version: 0.1.1
 ---
 
 # Assembling a personal devbox
+
+> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
+> this skill documents currently return a rebuild notice instead of executing (the interim
+> `hiloop devbox` verbs report the same rebuild). The workflow returns with the new runtime; until
+> then, read this skill as reference, not runnable steps.
 
 A personal devbox is an ordinary sandbox assembled deliberately: a durable workspace, an idle
 timeout instead of a deadline, an access list that stays owner-only, and SSH as the front door.

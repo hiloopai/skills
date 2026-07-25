@@ -9,10 +9,14 @@ description: >-
   desired-vs-observed state model. Use when asked to spin up / provision / launch a hiloop sandbox
   or environment, choose its image or profile, stop or resume one, or tear one down.
 metadata:
-  version: 0.7.0
+  version: 0.7.1
 ---
 
 # Creating sandboxes
+
+> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
+> this skill documents currently return a rebuild notice instead of executing. The workflow returns
+> with the new runtime; until then, read this skill as reference, not runnable steps.
 
 A **sandbox** is an isolated environment your agent runs in. It boots from an explicit **profile or
 image**, with a resource request, inside a **project**. The lifecycle is: create → poll until ready
