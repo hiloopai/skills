@@ -24,8 +24,8 @@ minted for** — a staging session is never sent to production — so pointing t
 `--api-url` falls through to the API-key path rather than leaking a token across edges.
 
 An expired session is refreshed automatically and the rotated token persisted. If the refresh token
-itself is dead you get one clear instruction — `your session expired — run hiloop login to sign in
-again` — rather than a confusing 401.
+itself is dead you get one clear instruction — ``your session expired — run `hiloop login` to sign in
+again`` — rather than a confusing 401.
 
 ## Default: `hiloop login`
 
@@ -71,8 +71,10 @@ hiloop whoami
 
 This calls `GET /v1/whoami` and prints the identity the credential resolves to: the **principal** —
 its `kind` (`user` or `service_account`), id, and the API key's id and name (`email` too for a user
-key) — and the **tenant** (id + slug). `--output json` prints exactly
-`{"principal": {…}, "tenant": {…}}`. **Always run `whoami` first** — it is the cheapest way to
+key) — and the **tenant** (id + slug). `--output json` prints pretty-printed
+`{"principal": {…}, "tenant": {…}}`; only `principal.kind` and `principal.id` are always present —
+optional fields are omitted when absent, and `tenant` is omitted entirely for an org-scoped
+credential, so read defensively. **Always run `whoami` first** — it is the cheapest way to
 confirm auth and scope are correct before a real operation. If it fails with 401/unauthenticated,
 the credential is missing, malformed, expired, or revoked.
 

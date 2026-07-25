@@ -19,9 +19,9 @@ metadata:
 >    already-installed CLI still carries the *previous* sandbox surface (`sandbox run`, `fork`,
 >    `cp`, `access`, `expose`, `port-forward`, `ssh-config`, `start`/`shell`/`stream`) — those verbs
 >    were removed, and nothing on this page depends on them.
-> 2. **No deployment serves the `/v1/sandboxes` routes yet.** The handlers are not merged, so a call
->    returns a bare `404` with an empty body — not the usual `{"code": …, "message": …}` envelope,
->    and not a helpful client-side message.
+> 2. **No deployment serves the `/v1/sandboxes` routes yet.** A call returns a bare `404` with an
+>    empty body — not the usual `{"code": …, "message": …}` envelope, and not a helpful client-side
+>    message. Recognise that shape for what it is: an unserved route, not a bad request of yours.
 >
 > So read this as the contract, not as runnable steps. Don't invent verbs or workarounds to get
 > around the 404: capture agent work locally with `hiloop run` instead
@@ -141,8 +141,11 @@ hiloop sandbox delete <sandbox>    # permanent; waits for termination
 
 `stop` seals the sandbox and keeps its record inspectable. `start` brings it back under a **new
 runtime generation** — the filesystem returns, every process and all memory state from the previous
-generation is gone. (Memory restore is a committed later phase, not v1.) `delete` asks for
-confirmation on a terminal; `--yes` skips it.
+generation is gone. (Memory restore is a committed later phase, not v1.)
+
+**`delete` does not prompt.** It is immediate and irreversible — there is no "are you sure" to catch
+a mistake, and the `--yes` flag is accepted but does nothing (it is hidden from `--help` for that
+reason). Snapshot anything you might want back *before* deleting.
 
 Always clean up sandboxes you created for a task unless told to keep them.
 

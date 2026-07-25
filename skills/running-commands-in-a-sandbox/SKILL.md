@@ -59,8 +59,8 @@ non-zero exit means the command failed inside the sandbox; read stderr to diagno
 
 ## Interactive: `ssh`
 
-`hiloop sandbox ssh` resolves the sandbox, **auto-starts it if it is stopped**, and then execs
-**stock OpenSSH** against a short-lived generated config:
+`hiloop sandbox ssh` resolves the sandbox, **auto-starts it if it is stopped**, and then spawns
+**stock OpenSSH** against a short-lived generated config, relaying its exit status:
 
 ```sh
 hiloop sandbox ssh <sandbox>                                    # a shell
@@ -68,9 +68,10 @@ hiloop sandbox ssh <sandbox> -- 'cd /workspace && git status'   # one remote com
 hiloop sandbox ssh <sandbox> -- -L 8080:localhost:8080          # forward a port (stock ssh flag)
 ```
 
-Everything after `--` is passed literally to `ssh`, so port forwarding, agent forwarding, and the
-rest of the OpenSSH flag surface work as they normally do. There is **no** `--local-forward` flag,
-no `sandbox port-forward`, and no `sandbox expose` — preview URLs / HTTP exposure are a later phase.
+What follows `--` is handed to `ssh`: leading `-flags` are placed before the host and the rest
+becomes the remote command, so port forwarding, agent forwarding, and the rest of the OpenSSH flag
+surface work as they normally do. There is **no** `--local-forward` flag, no `sandbox port-forward`,
+and no `sandbox expose` — preview URLs / HTTP exposure are a later phase.
 
 If the environment cannot issue an SSH connection, the CLI says so explicitly and points you at
 buffered execution rather than hanging:

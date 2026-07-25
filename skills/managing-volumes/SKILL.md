@@ -37,9 +37,10 @@ prefetch`** — the node-cache pre-warm verb was removed; do not reach for it. T
 hiloop volume create imagenet-160 --size-gb 100 --description "ImageNet 160px"
 ```
 
-`--size-gb` is a **quota** — a cap on the volume's total committed size, not an allocation. An empty
-volume consumes no storage. The default per-volume ceiling is 2048 GiB (2 TiB). The volume starts
-empty, with no versions, until the first push.
+`--size-gb` is a **quota** in GiB — a cap on the volume's total committed size, not an allocation.
+An empty volume consumes no storage. The default per-volume ceiling is 2048 GiB (2 TiB), which an
+operator can raise or lower per deployment. The volume starts empty, with no versions, until the
+first push.
 
 Project selection is `--project <slug-or-id>` > `HILOOP_PROJECT` > the active context's project.
 
