@@ -10,7 +10,7 @@ description: >-
   observe / trace an agent run, query telemetry or LLM calls, compute token metrics, scope to a
   branch, follow a run live, or compare what two runs did.
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # Querying observability trees
@@ -52,8 +52,9 @@ event (nothing unlisted is ever captured); `--sample-resources` records process-
 samples every 15s; `--egress-deny --allow-domain <domain>` runs the command under a deny-by-default
 egress policy.
 
-Sandbox one-shots register runs too: `hiloop sandbox run` prints its run id, and platform lifecycle
-events (`signal = 'runtime'`) flow for every sandbox whether or not capture is on.
+`hiloop run` on your own machine is the capture lane that works today. (Sandbox-side capture is
+unavailable while the sandbox runtime is rebuilt — see `creating-sandboxes` — and there is no
+`hiloop sandbox run` verb any more.)
 
 ## 2. Orient: list, tree, transcript
 
@@ -72,8 +73,8 @@ counts per subtree. `runs show --trace` prints a to-scale waterfall summary abov
 `runs show --output json` prints `{run, events}` — the run record plus the canonical event stream,
 payloads up to 64 KiB inlined under `payload_ref.inline`.
 
-Run lifecycle is client-owned: whatever starts a run ends it (`hiloop run` and `sandbox run` do it
-for you). If you register runs yourself, stamp the ending with
+Run lifecycle is client-owned: whatever starts a run ends it (`hiloop run` does it for you). If you
+register runs yourself, stamp the ending with
 `hiloop runs complete <id> --status succeeded|failed|canceled` — an unclosed run reads as
 `running`, flagged `(stale)` once it has been quiet past a liveness window.
 

@@ -9,7 +9,7 @@ description: >-
   surface renders wrong, or you have a product suggestion — never for reporting your own task's
   results.
 metadata:
-  version: 0.1.0
+  version: 0.1.1
 ---
 
 # Reporting product bugs
@@ -85,7 +85,7 @@ The same shape over the API with your bearer credential — an agent that hits a
 can report it with its own credential:
 
 ```sh
-curl -sS -X POST "${HILOOP_API_URL:-https://api.hiloop.ai}/v1/feedback" \
+curl -sS -X POST "${HILOOP_API_URL:?set your deployment's API edge}/v1/feedback" \
   -H "Authorization: Bearer ${HILOOP_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{

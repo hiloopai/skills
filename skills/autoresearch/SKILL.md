@@ -253,9 +253,10 @@ uv run tools/fleet-dashboard/dashboard.py \
 
 ## Preview: sandboxed experiment arms
 
-> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
-> this section uses currently return a rebuild notice instead of executing; this path returns with
-> the new runtime. The proven local path above is unaffected.
+> **Unavailable.** The sandbox runtime is mid-rebuild: no deployment serves `/v1/sandboxes`, so
+> `hiloop sandbox exec` fails outright (see `creating-sandboxes`). This whole section is therefore
+> **not selectable today** — the local path above is the only one that runs. It stays here because
+> the surface returns; re-verify the flags against `--help` when it does.
 
 **Gate:** do not select this path for a live run until the operator explicitly confirms a full
 staging rehearsal is green. The proven local path above remains the default. To flip after that
@@ -273,7 +274,7 @@ Use base64 over `sandbox exec` for these KB-scale files; there is no file-copy v
 task_b64="$(base64 < TASK.md | tr -d '\n\r')"
 data_b64="$(base64 < data.py | tr -d '\n\r')"
 score_b64="$(base64 < score.py | tr -d '\n\r')"
-hiloop sandbox exec "$sandbox" --timeout-secs 180 -- /bin/sh -c \
+hiloop sandbox exec "$sandbox" --timeout 180 -- /bin/sh -c \
   "mkdir -p '$HILOOP_AUTORESEARCH_ROOT'; \
    printf '%s' '$task_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/TASK.md'; \
    printf '%s' '$data_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/data.py'; \
@@ -285,7 +286,7 @@ key, and read the scorer line from stdout:
 
 ```sh
 script_b64="$(base64 < experiment.py | tr -d '\n\r')"
-output="$(hiloop sandbox exec "$sandbox" --timeout-secs 90 \
+output="$(hiloop sandbox exec "$sandbox" --timeout 90 \
   --idempotency-key "autoresearch-$HILOOP_RUN_ID-$experiment_id" -- /bin/sh -c \
   "printf '%s' '$script_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/experiment.py'; \
    cd '$HILOOP_AUTORESEARCH_ROOT'; \

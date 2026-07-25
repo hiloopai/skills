@@ -1,145 +1,116 @@
 ---
 name: running-commands-in-a-sandbox
 description: >-
-  Run commands inside a hiloop sandbox and get results out. Covers the quick buffered
-  `hiloop sandbox exec` (timeout ceiling, output caps, exit codes, safe retries with idempotency
-  keys), one-shot purpose-built sandboxes with `hiloop sandbox run` (--rm, --wait), interactive
-  terminals over managed SSH (`hiloop sandbox ssh`, port forwarding), and moving files across the
-  boundary (workspace + rsync, execution output artifacts). Use when asked to run a command,
-  script, build, test, or long-running process inside a hiloop sandbox, to work in one
+  Run commands inside a hiloop sandbox and get results out. Covers the buffered
+  `hiloop sandbox exec` (timeout ceiling, output truncation, exit codes, safe retries with
+  idempotency keys), interactive terminals over managed SSH (`hiloop sandbox ssh`, port forwarding
+  via stock OpenSSH flags), and moving files across the boundary with volumes and rsync over SSH.
+  Use when asked to run a command, script, build, or test inside a hiloop sandbox, to work in one
   interactively, or to get files in or out.
 metadata:
-  version: 0.5.1
+  version: 0.6.0
 ---
 
 # Running commands in a sandbox
 
-> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
-> this skill documents currently return a rebuild notice instead of executing. The workflow returns
-> with the new runtime; until then, read this skill as reference, not runnable steps.
+> **Status: the sandbox runtime is mid-rebuild — these commands do not work against a deployment
+> yet.** The verbs below ship with the CLI's next release, and no deployment serves the
+> `/v1/sandboxes` routes yet, so `exec` and `ssh` return a bare `404` (empty body, no error
+> envelope). The surface below is the settled contract they return on. Meanwhile, capture agent work
+> locally with `hiloop run` (`querying-observability-trees`). See `creating-sandboxes` for the full
+> status.
 
-Once a sandbox is **running** (see `creating-sandboxes`), there are three ways to run work in it —
-and the choice matters:
+Once a sandbox is **running** (see `creating-sandboxes`), there are exactly two ways to run work in
+it:
 
-- **Quick, bounded one-shot → `hiloop sandbox exec`.** Runs the command through the durable
-  execution queue, waits, prints its captured stdout/stderr, and exits with its exit code. For
-  short, non-interactive commands.
-- **One command as the sandbox's whole purpose → `hiloop sandbox run`.** Creates the sandbox, runs
-  the command to completion, and stops (or deletes) the sandbox when it exits. For batch jobs and
-  fire-and-forget work.
-- **Interactive or long-attended → `hiloop sandbox ssh`.** A real terminal through the signed
-  session gateway, on profiles that carry managed SSH. For exploration, REPLs, and anything you
-  steer by hand.
+- **Buffered one-shot → `hiloop sandbox exec`.** Sends one command, waits, prints its captured
+  stdout/stderr, and exits with its exit code. For short, non-interactive commands.
+- **Interactive or long-attended → `hiloop sandbox ssh`.** A real terminal over managed SSH. For
+  exploration, REPLs, file transfer, and anything you steer by hand.
 
-## Quick one-shot: `exec`
+There is no `hiloop sandbox run` one-shot verb, and no `sandbox cp`. If you want a sandbox that
+exists for a single command, create it, exec, and delete it.
+
+## Buffered: `exec`
 
 Everything after `--` is the command:
 
 ```sh
-hiloop sandbox exec <sandbox> --timeout-secs 300 -- sh -lc 'cd /workspace && python3 train.py --lr 3e-4'
+hiloop sandbox exec <sandbox> --timeout 300 -- sh -lc 'cd /workspace && python3 train.py --lr 3e-4'
 ```
 
-It polls the execution to completion, prints stdout/stderr, and exits with the command's exit
-code — so you can branch on it directly. A non-zero exit means the command failed inside the
-sandbox; read stderr to diagnose. Behaviors to know:
+It prints stdout/stderr and exits with the command's exit code, so you can branch on it directly. A
+non-zero exit means the command failed inside the sandbox; read stderr to diagnose.
 
-- **Every command is a durable execution record** — state, exit code, and bounded output survive
-  the CLI invocation.
-- **Timeouts have a ceiling.** `--timeout-secs` is optional (server default 30s); a command that
-  exceeds it fails with `command_timed_out`. The server rejects a timeout above what one queued
-  execution may run (595s on a default deployment, named in the rejection) — run longer work as a
-  `sandbox run` one-shot or under SSH.
-- **Captured output is capped** by the runtime (as low as 128 KiB of combined stdout/stderr). An
-  over-cap command may be stopped at the cap and prints the captured leading bytes plus a
-  truncation warning on stderr — write large output to a file under `/workspace` instead.
-- **Retry ambiguously-failed execs with an idempotency key.** Pass `--idempotency-key <key>`:
-  re-running with the same key returns the original execution instead of running the command a
-  second time (the same key with a different command is rejected).
-- **Env vars and working directory** aren't `exec` flags — bake them into the command
-  (`sh -lc 'cd /workspace && FOO=bar python3 …'`), or use the `:execute` passthrough with a full
-  command spec (`env`, `working_dir`, `timeout_secs`).
+- **The flag is `--timeout`, in seconds, and its accepted range is 1–3600.** (It is not
+  `--timeout-secs`.) Omitted, the server default applies.
+- **Transport success is distinct from command exit.** A timeout or a truncated response never
+  fabricates an exit code — treat a transport failure and a non-zero exit as different problems.
+  Retrying a command that genuinely failed will not help; fix the command.
+- **Output is buffered and can be truncated.** When it is, the CLI prints
+  `warning: remote output was truncated` on stderr. Write large output to a file inside the sandbox
+  and read it back deliberately rather than relying on the exec response.
+- **Retry ambiguous failures with `--idempotency-key <key>`.** Re-running with the same key returns
+  the original execution instead of running the command twice.
+- **Env vars and working directory are not flags** — bake them into the command
+  (`sh -lc 'cd /workspace && FOO=bar python3 …'`).
+- **Exec is buffered only in v1.** Streaming (SSE) output is a fast-follow, not available now, so
+  do not design around live output from `exec`.
 
-Write only below `/workspace` or `/tmp` — the image root is read-only.
+## Interactive: `ssh`
 
-## One-shot sandbox: `sandbox run`
-
-When the sandbox exists *for* one command, create-and-run in one verb. It takes the same
-environment flags as `sandbox create` (`--profile`/`--image` required, resources, workspace,
-`--secret`, `--as`), runs the command once the sandbox is running, and stops the sandbox when the
-command exits — the run ends `succeeded` on exit 0 and `failed` otherwise:
+`hiloop sandbox ssh` resolves the sandbox, **auto-starts it if it is stopped**, and then spawns
+**stock OpenSSH** against a short-lived generated config, relaying its exit status:
 
 ```sh
-hiloop sandbox run \
-  --project <project> \
-  --profile gvisor-cpu \
-  --name train-once \
-  --rm \
-  --wait \
-  -- python3 -c 'print("done")'
-```
-
-- Detached by default: it prints the sandbox, run, and execution ids and returns. `--wait` follows
-  the command's output live and exits with its exit code once the sandbox has come to rest.
-- `--rm` deletes the sandbox when the command exits instead of stopping it; the run and execution
-  records persist either way.
-- The command's lifetime is bounded: `--max-runtime` (server default 86400s/24h) kills it past the
-  cap, and `--idempotency-key` makes a retried create-and-run safe (the original sandbox,
-  operation, and execution come back instead of a second run).
-
-## Interactive: `sandbox ssh`
-
-On a profile that advertises managed SSH, attach a real terminal through the signed session
-gateway — ephemeral credentials, no guest `sshd`, no exposed port:
-
-```sh
-hiloop sandbox ssh <sandbox>                          # a shell
+hiloop sandbox ssh <sandbox>                                    # a shell
 hiloop sandbox ssh <sandbox> -- 'cd /workspace && git status'   # one remote command
-hiloop sandbox ssh <sandbox> --local-forward 8080:8080          # forward a local port in
+hiloop sandbox ssh <sandbox> -- -L 8080:localhost:8080          # forward a port (stock ssh flag)
 ```
 
-SSH processes end when their session ends; checkpoint durable work under `/workspace`. The full
-devbox workflow — stock OpenSSH config, rsync, access grants, suspend-and-wake — is the
-`assembling-a-personal-devbox` skill.
+What follows `--` is handed to `ssh`: leading `-flags` are placed before the host and the rest
+becomes the remote command, so port forwarding, agent forwarding, and the rest of the OpenSSH flag
+surface work as they normally do. There is **no** `--local-forward` flag, no `sandbox port-forward`,
+and no `sandbox expose` — preview URLs / HTTP exposure are a later phase.
 
-To reach a TCP service in the sandbox without SSH, `hiloop sandbox port-forward <sandbox>
-<remote-port>` forwards a local loopback port, and `hiloop sandbox expose <sandbox> <port>` mints a
-token-gated preview URL others can open (see `assembling-a-personal-devbox`).
+If the environment cannot issue an SSH connection, the CLI says so explicitly and points you at
+buffered execution rather than hanging:
 
-## Errors, retries, and polling backoff
+```
+session plane not yet available in this environment
+Use buffered execution: hiloop sandbox exec <sandbox> -- <command>
+```
 
-- **Distinguish the two failure layers.** A non-zero CLI/transport failure (auth, not-found,
-  sandbox not running) is different from a command that ran but exited non-zero. Retrying a bad
-  command won't help; fix the command.
-- **Back off when polling.** If you poll an execution or operation by id, use capped exponential
-  backoff (e.g. 1s, 2s, 4s … to a ceiling) with a sane overall timeout — don't hot-loop, and don't
-  poll forever.
-- **Bound long jobs and checkpoint.** Split unattended work into bounded steps that checkpoint
-  state under `/workspace` between commands — an idle sandbox is reclaimed on its idle timeout
-  (see `creating-sandboxes`), and a `sandbox run` one-shot carries its own `--max-runtime`.
+SSH processes end when their session ends, and a stop/start cycle gives you a **new runtime
+generation** — the filesystem returns, processes do not. Checkpoint durable work to a file.
+
+## Errors, retries, and polling
+
+- **Distinguish the two failure layers.** An auth / not-found / sandbox-not-running failure is not
+  the same as a command that ran and exited non-zero.
+- **Back off when polling.** If you poll state by id, use capped exponential backoff (1s, 2s, 4s …)
+  with an overall timeout — don't hot-loop and don't poll forever.
+- **Bound long jobs and checkpoint.** Split unattended work into bounded steps that write state to
+  disk between commands; a sandbox with a `--ttl` will be reclaimed when it expires.
 
 ## Move files across the boundary
 
-There is no dedicated file-copy verb; pick the path that fits the data:
+There is no file-copy verb. Pick the path that fits the data:
 
-- **Results a command produces:** write them under `/workspace`, then read small ones back with
-  `exec` (`-- cat /workspace/out/summary.json`). A workspace attached as a versioned revision also
-  survives the sandbox — seal it and the data outlives the runtime
-  (`persisting-and-branching-workspaces`).
-- **Bulk copy in either direction:** on a managed-SSH profile, install the OpenSSH stanza and use
-  rsync — `hiloop sandbox ssh-config install <sandbox>`, then
-  `rsync --archive ./data/ hiloop-<sandbox>:/workspace/data/` (see
-  `assembling-a-personal-devbox`).
+- **Bulk data in:** publish it as a **volume** and mount it at create
+  (`--volume <name>:/data`) — see `managing-volumes`. This is the right answer for datasets, model
+  caches, and checkpoints.
+- **Bulk data either direction, interactively:** rsync/scp over managed SSH. Since `sandbox ssh`
+  runs stock OpenSSH, file transfer rides the same path once the session plane is serving.
+- **Small results out:** write them to a file, then read them back with
+  `exec -- cat /path/to/summary.json` — but mind the output truncation above.
 - **Inputs from the network:** with egress allowed, fetch them from inside
-  (`exec -- sh -lc 'curl -fsSL <url> -o /workspace/data.zip'`).
-- **Execution outputs as artifacts:** each execution records its bounded stdout/stderr as
-  content-addressed artifacts. Read an execution over the passthrough
-  (`hiloop api /v1/executions/<execution-id>`) for its artifact ids, fetch small ones via
-  `hiloop api /v1/artifacts/<artifact-id>`, and rediscover ids later with `hiloop artifact list`.
+  (`exec -- sh -lc 'curl -fsSL <url> -o /data.zip'`).
+- **State you must keep:** snapshot the sandbox (`snapshotting-and-forking`), or create it with
+  `--storage-class durable`.
 
 ## See what the command did
 
-A sandbox is *where* the agent runs; telemetry is *how you see what it did*. Platform lifecycle
-events flow for every sandbox (`hiloop query --run-id <run-id> --signal runtime`), and a `sandbox
-run` one-shot registers a run you can inspect with `hiloop runs show`. To capture a full agent
-run's model calls, tool traffic, and stdio, wrap the agent with `hiloop run` and query it — see
+A sandbox is *where* an agent runs; telemetry is *how you see what it did*. To capture an agent's
+model calls, tool traffic, and stdio, wrap the agent with `hiloop run` and query it — see
 `querying-observability-trees`.

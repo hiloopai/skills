@@ -4,11 +4,11 @@ description: >-
   Give a hiloop run a credential it can use but never see — a model-provider key, a third-party API
   token — via the secret broker. Covers `hiloop secret set` / `list` / `rotate` / `revoke`
   (write-only values bound to a destination host + header) and binding a secret into a captured run
-  with `hiloop run --secret`, plus why sandbox-side bindings currently fail closed. Use when an
-  agent needs to call an authenticated external API without the key landing in the agent's context,
-  on disk, or in the environment.
+  with `hiloop run --secret`, which works today, plus why sandbox-side bindings do not yet. Use when
+  an agent needs to call an authenticated external API without the key landing in the agent's
+  context, on disk, or in the environment.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Managing secrets
@@ -58,17 +58,24 @@ require the transparent (netns) network-capture mode — on a host where its pre
 run fails before the child starts rather than running unauthenticated or leaking the value
 (see `querying-observability-trees` for `--net-capture`).
 
-## Sandbox bindings fail closed (for now)
+## Sandbox bindings do not work yet
 
-`hiloop sandbox create --secret <name>` requests the same binding for a sandbox — but **current
-production cells do not advertise native secret injection, so the create fails closed**. A
-credential is never silently dropped while the sandbox runs unauthenticated, and there is no flag
-that overrides it.
+`hiloop sandbox create --secret <name>` requests the same binding for a sandbox. **It does not work
+today**, for two stacked reasons, and it is worth knowing which is which:
 
-Do not work around this by placing a key in a sandbox's environment, image, command line, or
-workspace — those paths expose plaintext to the agent and to process-inspection and logging
-surfaces, and a workspace copy is captured by every seal. Until native injection ships, run
-credentialed agent work under `hiloop run`, where the broker path above works today.
+1. **The sandbox runtime is being rebuilt** — the API edge does not serve `/v1/sandboxes` at all, so
+   the create fails before secrets are even considered (see `creating-sandboxes`).
+2. **In-sandbox secret delivery is itself being respecified.** The design principle is unchanged and
+   non-negotiable: a credential is never placed in guest environment, argv, images, logs, or
+   telemetry, so delivery **fails closed** rather than degrading. A sandbox is never silently
+   created without the credential it asked for.
+
+There is no flag that overrides either. Do not wait for a workaround — there isn't one.
+
+Do not work around this by placing a key in a sandbox's environment, image, command line, or on its
+disk — those paths expose plaintext to the agent and to process-inspection and logging surfaces, and
+a disk copy is captured by every snapshot. **Run credentialed agent work under `hiloop run`
+instead**, where the broker path above works today.
 
 ## Manage the lifecycle
 
