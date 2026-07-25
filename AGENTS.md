@@ -11,6 +11,11 @@ self-contained; read the one that matches the task.
 
 ## The interface: the `hiloop` CLI
 
+> **Sandbox commands are temporarily unavailable — sandbox runtime rebuild in progress.** The
+> `hiloop sandbox` family currently returns a rebuild notice instead of executing, and the skills
+> documenting it carry the same banner; those workflows return with the new runtime. Everything
+> else below works today.
+
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (lifecycle, exec, one-shot runs, SSH, access lists),
 `hiloop secret`, `hiloop lease` (serialize concurrent orchestrators), `hiloop workloads` (named

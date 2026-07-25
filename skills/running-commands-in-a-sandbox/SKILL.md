@@ -9,10 +9,14 @@ description: >-
   script, build, test, or long-running process inside a hiloop sandbox, to work in one
   interactively, or to get files in or out.
 metadata:
-  version: 0.5.0
+  version: 0.5.1
 ---
 
 # Running commands in a sandbox
+
+> **Temporarily unavailable — sandbox runtime rebuild in progress.** The `hiloop sandbox` commands
+> this skill documents currently return a rebuild notice instead of executing. The workflow returns
+> with the new runtime; until then, read this skill as reference, not runnable steps.
 
 Once a sandbox is **running** (see `creating-sandboxes`), there are three ways to run work in it —
 and the choice matters:
