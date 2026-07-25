@@ -1,8 +1,8 @@
 # hiloop skills
 
 Open-source [Agent Skills](https://agentskills.io) that teach AI coding agents to operate
-**[hiloop](https://hiloop.ai)** — isolated agent sandboxes with branchable, versioned workspaces
-and tree-native observability.
+**[hiloop](https://hiloop.ai)** — isolated agent sandboxes you can snapshot and branch, with
+tree-native observability.
 
 The skills follow the open Agent Skills standard, so they work across harnesses (Claude Code, Cursor,
 Codex, and others). They drive hiloop through the `hiloop` **CLI** — the supported agent interface —
@@ -15,13 +15,13 @@ definitions every turn.
 |---|---|
 | [`autoresearch`](skills/autoresearch/SKILL.md) | Run an autonomous research loop with evolving idea cards, scored experiments, an ensemble, and a leaderboard |
 | [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
-| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / delete sandboxes; pick a profile or image, request resources |
-| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered, one-shot, or over SSH); move files in/out |
-| [`persisting-and-branching-workspaces`](skills/persisting-and-branching-workspaces/SKILL.md) | Seal a workspace into a revision on stop, resume it exactly, branch N sandboxes from one revision |
-| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | A long-lived, owner-only devbox: managed SSH, rsync, access grants, suspend-and-wake |
+| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / stop / start / delete sandboxes; boot from an image or a snapshot |
+| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered `exec` or over SSH); move files in and out |
+| [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
+| [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish and version large data once, mount it into many sandboxes |
+| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | A long-lived devbox over managed SSH (currently switched off — read it for the shape) |
 | [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a run a credential it uses but never sees (the secret broker) |
-| [`coordinating-with-leases`](skills/coordinating-with-leases/SKILL.md) | Serialize concurrent agents with named, TTL-bounded leases (at most one live holder per name) |
-| [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch runs/sandboxes as a registered machine identity (a workload) and control who may launch as it |
+| [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
 | [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | [`reporting-product-bugs`](skills/reporting-product-bugs/SKILL.md) | Report a hiloop bug (or send product feedback) to the hiloop team with `hiloop feedback` |
@@ -37,9 +37,13 @@ curl -fsSL https://hiloop.ai/install.sh | sh
 hiloop --version
 ```
 
-**2. Authenticate** — `hiloop login` is the default (`--device` on a remote box with no local browser):
+**2. Point the CLI at your deployment, then authenticate** — the built-in default edge is not live,
+so save a context (or set `HILOOP_API_URL`) first. `hiloop login` is the default (`--device` on a
+remote box with no local browser):
 
 ```sh
+hiloop config set-context my-deployment --api-url https://api.example.com
+hiloop config use-context my-deployment
 hiloop login
 hiloop whoami
 ```
@@ -57,8 +61,12 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-Then ask your agent to spin up a hiloop sandbox, run work in it, and query the trace tree — the
-skills guide the rest.
+Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
+
+> **Sandbox status.** The sandbox runtime is being rebuilt: no deployment serves the
+> `/v1/sandboxes` routes yet, so the `hiloop sandbox` and `hiloop devbox` commands do not execute
+> today. The sandbox skills document the settled contract those verbs return on and say so up front;
+> the rest of the bundle works now.
 
 For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
 [`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public

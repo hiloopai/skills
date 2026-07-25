@@ -3,11 +3,12 @@ name: authenticating
 description: >-
   Authenticate to hiloop from a terminal or headless agent so the hiloop CLI and API can be used.
   Covers `hiloop login` (the default — a browser or device flow), the HILOOP_API_KEY environment
-  variable for CI and headless agents, verifying identity with `hiloop whoami`, and tenant scope.
-  Use this when a hiloop command returns 401 / unauthenticated, before the first hiloop call
-  in a session, or when setting up credentials for an agent.
+  variable for CI and headless agents, verifying identity with `hiloop whoami`, minting scoped keys,
+  and pointing the CLI at a deployment (the hosted default edge is not live). Use this when a hiloop
+  command returns 401 / unauthenticated, before the first hiloop call in a session, or when setting
+  up credentials for an agent.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Authenticating to hiloop
@@ -16,9 +17,15 @@ hiloop authenticates every request with a bearer token at its edge. The token is
 from `hiloop login` **or** a `hil_…` API key — the API accepts both. `hiloop login` is the default;
 reach for an API key when no human is present.
 
-The CLI resolves credentials in this order, first match wins: `--api-key` flag → `HILOOP_API_KEY`
-env → cached `hiloop login` session. So an explicitly-set env var always overrides a cached login —
-which is what you want in CI.
+The CLI resolves credentials in this order, first match wins: `--api-key` flag / `HILOOP_API_KEY`
+env → a cached `hiloop login` session → a stored API key. So an explicitly-set key always overrides
+a cached login, which is what you want in CI. A cached session is only used for **the edge it was
+minted for** — a staging session is never sent to production — so pointing the CLI at a different
+`--api-url` falls through to the API-key path rather than leaking a token across edges.
+
+An expired session is refreshed automatically and the rotated token persisted. If the refresh token
+itself is dead you get one clear instruction — `your session expired — run hiloop login to sign in
+again` — rather than a confusing 401.
 
 ## Default: `hiloop login`
 
@@ -35,9 +42,11 @@ secret sits on disk**. The browser (loopback) flow is the default when a local b
 verification URL and code, a human approves out-of-band, and the CLI caches the session. After login,
 `hiloop whoami` confirms who you are.
 
-Point the CLI at your deployment first: save a named context (`hiloop config set-context <name>
---api-url <url>`, then `hiloop config use-context <name>`) or set `HILOOP_API_URL`. Login enters
-your **default tenant**; pass `--tenant-id` to enter another.
+**Point the CLI at your deployment first — this is not optional.** The built-in default edge
+(`https://api.hiloop.ai`) **is not live**, and the CLI refuses to use it with a self-diagnosing
+error rather than failing on DNS. Save a named context (`hiloop config set-context <name> --api-url
+<url>`, then `hiloop config use-context <name>`) or set `HILOOP_API_URL`. If a command tells you no
+API URL is configured, that is this — configure the edge, don't retry.
 
 > Already have a dashboard key and want it stored once? `hiloop login --with-key` reads a key from
 > stdin (`echo "$KEY" | hiloop login`), verifies it, and stores it — the scriptable variant of login.
@@ -82,22 +91,21 @@ hiloop keys list                                 # metadata only; never reveals 
 hiloop keys revoke <key-id-or-name>              # revoke when done; idempotent
 ```
 
-Prefer a **tenant-scoped** key for runtime/sandbox work. Treat a leaked key as compromised and revoke
-it. (For credentials a *sandbox* uses but the agent must never see — e.g. a model provider key — use
-the secret broker instead: the `managing-secrets` skill.)
+Treat a leaked key as compromised and revoke it. (For credentials a *workload* uses but the agent
+must never see — e.g. a model provider key — use the secret broker instead: the `managing-secrets`
+skill.)
 
-## Scope: which tenant you act in
+## Scope: tenants are hidden now
 
-Runtime work — sandboxes, executions, runs — is **tenant-scoped**. A fresh login enters your
-default tenant (`--tenant-id` names another); to change later:
+**There is no `hiloop tenant` command** — not `tenant switch`, not `tenant egress`, not anything
+else. The whole surface was removed: each org gets **one auto-provisioned tenant**, so
+there is nothing to pick between and nothing to switch to. If you find a script or an older
+instruction calling `hiloop tenant switch`, it is stale — delete the call rather than looking for a
+replacement.
 
-```sh
-hiloop whoami                        # check the current tenant
-hiloop tenant switch <tenant-id>     # re-scope the session to another tenant
-hiloop tenant switch <tenant-id> --set-default   # …and make it your sticky default
-```
-
-If a runtime call fails with a scope error, you are in the wrong tenant — switch and retry.
+Your work is still tenant-scoped; the scope is simply implied by your credential. `hiloop whoami`
+reports the tenant you resolve to. The one survivor is `hiloop login --tenant-id <id>`, for the
+uncommon case of choosing among memberships at login time.
 
 ## Never
 

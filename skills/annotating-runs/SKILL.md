@@ -11,7 +11,7 @@ description: >-
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # Annotating runs
@@ -83,8 +83,8 @@ hiloop annotations add \
   **Metrics are recorded the same way** — there is no stdout-metric convention; a training run
   annotates its own readings as it goes (`--data '{"metrics":{"val_bpb":0.9932},"step":1200}'`).
   A **sandbox** is different: the platform injects no credential or ambient run authority into the
-  guest, so annotate a sandbox run from an authenticated client outside it, using the run id
-  `hiloop sandbox run` printed.
+  guest, so a sandbox run is annotated from an authenticated client outside it. (Sandbox-side
+  capture is unavailable while the sandbox runtime is rebuilt — see `creating-sandboxes`.)
 - `--target-event <event-id>` pins the annotation to one event; omit it for a run-level judgment.
 - `--range <start>..<end>` targets a time window instead — each endpoint an RFC 3339 timestamp
   (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query

@@ -1,8 +1,8 @@
 ---
 name: launching-as-workloads
 description: >-
-  Launch hiloop runs and sandboxes as a workload — a named machine identity registered in your
-  tenant — with `--as workload/<name>` on `hiloop run` and `hiloop sandbox create`. Covers
+  Launch hiloop runs as a workload — a named machine identity registered in your tenant — with
+  `--as workload/<name>` on `hiloop run` (currently the only verb that takes it). Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
   every tenant member or restrict it to kinded principals — users by id and/or service-account
@@ -12,13 +12,13 @@ description: >-
   pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
   control who may launch as one.
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # Launching as workloads
 
-A **workload** is a named machine identity registered in your tenant that a run or sandbox can be
-launched **as** — `codex-runner`, `nightly-sync`, `eval-fleet` — so the work is attributed to the
+A **workload** is a named machine identity registered in your tenant that work can be launched
+**as** — `codex-runner`, `nightly-sync`, `eval-fleet` — so the work is attributed to the
 role that did it, not just to whichever credential happened to launch it. Each workload carries a
 **launch ACL** saying who may launch as it. The executing identity is always **declared, never
 inferred**: omit `--as` and you run as your own identity; pass `--as workload/<name>` and the
@@ -49,34 +49,37 @@ hiloop workloads delete codex-runner --yes
 
 Success prints `Deleted workload codex-runner.` (under `--output json`, the raw `{}` response).
 
-A workload whose sandboxes are still running under its identity is a `conflict` (409) — stop them
+A workload with live resources still running under its identity is a `conflict` (409) — stop them
 first. Past runs keep only the workload's **raw id** in their attribution: once the name is gone
 that id no longer resolves to a name, so still prefer long-lived role names (`codex-runner`) over
 per-task throwaways, and delete only workloads whose history you no longer need to read by name.
 
 ## Launch as it
 
-The launch verbs take the same flag (`hiloop run`, `hiloop sandbox create`, and the one-shot
-`hiloop sandbox run`), and the value must be `workload/<name>` — a bare name is rejected
-client-side:
+The value must be `workload/<name>` — a bare name is rejected client-side:
 
 ```sh
 hiloop run --as workload/codex-runner -- codex "fix the failing test"
-hiloop sandbox create --profile gvisor-cpu --as workload/codex-runner --wait
 ```
 
-The work is then attributed to that workload; you must hold launch rights on it. On a sandbox,
-`--as` also applies any identity-bound egress policy for the workload.
+The work is then attributed to that workload; you must hold launch rights on it.
 
-An unregistered name **fails closed** at registration time — the run/sandbox is never created:
+> **Which verbs take `--as`.** Today only **`hiloop run`**. `hiloop sandbox create` no
+> longer has an `--as` flag — it was dropped in the sandbox-runtime rebuild along with most of that
+> verb's flag set — and `hiloop sandbox run` no longer exists at all. `hiloop devbox create` still
+> declares `--as`, but every devbox command currently refuses to run (see
+> `assembling-a-personal-devbox`). So workload attribution is a **captured-run** feature right now.
+> There is also no identity-bound egress policy any more; the egress product surface was removed.
+
+An unregistered name **fails closed** at registration time — the run is never created:
 
 ```
 error: registering the run with the control plane: not_found (404): no workload named "nightly-sync" is registered
 ```
 
-The command exits 1; under `--output json` (on `hiloop sandbox create`) the same failure is a
-structured envelope on stderr: `{"error":{"code":"not_found","message":"…"}}`. Register the name
-first — that is the fix, there is no flag that launches as an unregistered identity.
+The command exits 1; under `--output json` the same failure is a structured envelope on stderr:
+`{"error":{"code":"not_found","message":"…"}}`. Register the name first — that is the fix, there is
+no flag that launches as an unregistered identity.
 
 ## Inspect
 
@@ -143,9 +146,15 @@ same call.
 1. Register the role once: `hiloop workloads create <name> --description "…"`.
 2. (Owner/admin) scope it: `allow-launch <name> --user … --service-account …` for a restricted
    role (members and/or CI keys), or leave a new workload open to all members.
-3. Launch everything acting as that role with `--as workload/<name>` — `hiloop run`,
-   `hiloop sandbox create`, and `hiloop sandbox run` all take it.
+3. Launch work acting as that role with `hiloop run --as workload/<name>`.
 4. Read it back anytime: `hiloop workloads show <name>` for the ACL, `list` for the registry.
 5. (Owner/admin) retire a role you no longer need: `hiloop workloads delete <name>` (confirms
-   first; `--yes` to skip) — stop its sandboxes first (live ones are a `conflict`), and remember
+   first; `--yes` to skip) — stop its live resources first (they are a `conflict`), and remember
    past runs keep only its raw id.
+
+## Related: federated cloud identity
+
+`hiloop workloads federation` manages federated cloud identity for a workload, and
+`hiloop workload-identity` mints cloud credentials from a sandbox's ambient identity on demand
+(no refresher daemon, no default AWS/Google token file). Both are separate surfaces from the launch
+ACL above; check `--help` for their current shape before using them.
