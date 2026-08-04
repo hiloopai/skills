@@ -4,11 +4,12 @@ description: >-
   Run commands inside a hiloop sandbox and get results out. Covers the buffered
   `hiloop sandbox exec` (timeout ceiling, output truncation, exit codes, safe retries with
   idempotency keys), interactive terminals over managed SSH (`hiloop sandbox ssh`, port forwarding
-  via stock OpenSSH flags), and moving files across the boundary with volumes and scp/sftp over SSH.
+  via stock OpenSSH flags), and moving files across the boundary with `hiloop sandbox cp`, volumes,
+  and scp/sftp over SSH.
   Use when asked to run a command, script, build, or test inside a hiloop sandbox, to work in one
   interactively, or to get files in or out.
 metadata:
-  version: 0.6.1
+  version: 0.7.0
 ---
 
 # Running commands in a sandbox
@@ -28,8 +29,8 @@ it:
 - **Interactive or long-attended → `hiloop sandbox ssh`.** A real terminal over managed SSH. For
   exploration, REPLs, file transfer, and anything you steer by hand.
 
-There is no `hiloop sandbox run` one-shot verb, and no `sandbox cp`. If you want a sandbox that
-exists for a single command, create it, exec, and delete it.
+There is no `hiloop sandbox run` one-shot verb. If you want a sandbox that exists for a single
+command, create it, exec, and delete it.
 
 ## Buffered: `exec`
 
@@ -95,15 +96,24 @@ generation** — the filesystem returns, processes do not. Checkpoint durable wo
 
 ## Move files across the boundary
 
-There is no file-copy verb. Pick the path that fits the data:
+Pick the path that fits the data:
 
-- **Bulk data in:** publish it as a **volume** and mount it at create
+- **Files and directories, either direction:** `hiloop sandbox cp [-r] <src> <dst>`, writing the
+  sandbox side as `<sandbox>:/absolute/path`. It needs nothing installed in the sandbox, retries a
+  transient transport failure, and works against any image:
+
+  ```sh
+  hiloop sandbox cp ./train.py box:/workspace/train.py
+  hiloop sandbox cp -r box:/workspace/out ./out
+  ```
+
+- **Bulk data in, shared by many sandboxes:** publish it as a **volume** and mount it at create
   (`--volume <name>:/data`) — see `managing-volumes`. This is the right answer for datasets, model
   caches, and checkpoints.
-- **Bulk data either direction, interactively:** `scp` or `sftp` over managed SSH. `sandbox ssh`
-  runs stock OpenSSH and the sandbox serves the SFTP subsystem itself, so both work against any
-  image with nothing installed. `rsync` does not: it runs itself on both ends, so it needs the
-  `rsync` binary inside the image, and the default image does not carry one.
+- **Incremental sync of a large tree:** `rsync` over managed SSH, which transfers only what changed
+  — but it runs itself on both ends, so it needs the `rsync` binary inside the image, and the
+  default image does not carry one. Plain `scp` and `sftp` work with nothing installed, the same way
+  `cp` does.
 - **Small results out:** write them to a file, then read them back with
   `exec -- cat /path/to/summary.json` — but mind the output truncation above.
 - **Inputs from the network:** with egress allowed, fetch them from inside

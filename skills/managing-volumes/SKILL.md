@@ -8,7 +8,7 @@ description: >-
   admission. Use when many sandboxes share the same input data, when data is too large to move
   through a command's output, or when asked to publish, version, or mount a dataset.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # Managing volumes
@@ -25,8 +25,10 @@ immutable version; content is stored once, deduplicated by digest, and shared ac
 > from a sandbox yet.
 
 The surface is exactly five verbs plus one create-time flag. **There is no `hiloop volume
-prefetch`** — the node-cache pre-warm verb was removed; do not reach for it. There is also no
-`hiloop sandbox cp`, so volumes are the supported way to get bulk data in.
+prefetch`** — the node-cache pre-warm verb was removed; do not reach for it. Volumes are for bulk,
+versioned data many sandboxes share; to get files into one running sandbox, use `hiloop sandbox cp`
+(`running-commands-in-a-sandbox`), which is the ingress that works today while mounting waits on
+the rebuild.
 
 > Authenticate first (the `authenticating` skill) and pick a project — a volume lives in a project
 > and its name is unique within it.

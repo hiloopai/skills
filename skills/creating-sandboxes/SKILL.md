@@ -7,7 +7,7 @@ description: >-
   metadata, and idempotent retries. Use when asked to spin up / provision / launch a hiloop sandbox
   or environment, choose its image, stop or start one, or tear one down.
 metadata:
-  version: 0.8.0
+  version: 0.9.0
 ---
 
 # Creating sandboxes
@@ -17,8 +17,8 @@ metadata:
 >
 > 1. **The verbs below ship with the CLI's next release.** They are the settled contract. An
 >    already-installed CLI still carries the *previous* sandbox surface (`sandbox run`, `fork`,
->    `cp`, `access`, `expose`, `port-forward`, `ssh-config`, `start`/`shell`/`stream`) — those verbs
->    were removed, and nothing on this page depends on them.
+>    `access`, `expose`, `port-forward`, `ssh-config`, `shell`, `stream`) — those verbs were
+>    removed, and nothing on this page depends on them.
 > 2. **No deployment serves the `/v1/sandboxes` routes yet.** A call returns a bare `404` with an
 >    empty body — not the usual `{"code": …, "message": …}` envelope, and not a helpful client-side
 >    message. Recognise that shape for what it is: an unserved route, not a bad request of yours.
@@ -51,9 +51,10 @@ hiloop sandbox snapshot list                 # GET    /v1/snapshots
 hiloop sandbox snapshot delete <snapshot>    # DELETE /v1/snapshots/{id}
 ```
 
-Plus `hiloop sandbox ssh` for interactive work, which rides the session plane rather than REST.
-There is no `run`, `fork`, `restore`, `resume`, `cp`, `access`, `expose`, `port-forward`,
-`ssh-config`, or `logs` verb — if you reach for one, it does not exist.
+Plus `hiloop sandbox ssh` for interactive work and `hiloop sandbox cp` for file transfer
+(`running-commands-in-a-sandbox`), which ride the session plane rather than REST. There is no
+`run`, `fork`, `restore`, `resume`, `access`, `expose`, `port-forward`, `ssh-config`, or `logs`
+verb — if you reach for one, it does not exist.
 
 ## Create
 
@@ -74,13 +75,17 @@ hiloop sandbox create experiment-b --from <snapshot-name-or-id>
 line; there is no `--wait` flag and no separate poll-until-ready step. `--output json` prints the
 raw body.
 
-There is no `--profile`, and no `--cpus` / `--memory-mb` / `--disk-mb` / `--gpus` / `--gpu-model` /
-`--arch` sizing flags on this verb. Do not pass them — they were removed with the previous runtime.
+Sizing is `--cpus` / `--memory-mb` / `--gpus`, each defaulting to the deployment's own default.
+There is no `--profile`, `--disk-mb`, `--gpu-model`, or `--arch`; those went with the previous
+runtime, so do not pass them.
 
 ### The flags that exist
 
 | Flag | Meaning |
 |---|---|
+| `--cpus <n>` | vCPUs, burstable. Omitted, the deployment default. |
+| `--memory-mb <mb>` | Memory in MB. Omitted, the deployment default. |
+| `--gpus <n>` | Accelerator count. Defaults to 0. |
 | `--ttl <seconds>` | Sandbox lifetime. Omitted, no TTL is set. |
 | `--storage-class standard\|durable` | `standard` (default) is node-bound; `durable` is a same-zone reattachable volume, for state you must not lose. |
 | `--port <n>` | Guest TCP port to make privately reachable (1–65535). Repeatable. |
