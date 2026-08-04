@@ -8,7 +8,7 @@ description: >-
   virtual machine. Use when asked to set up a devbox, a persistent remote dev environment, or to
   SSH into a sandbox.
 metadata:
-  version: 0.3.0
+  version: 0.3.1
 ---
 
 # Assembling a personal devbox
@@ -72,12 +72,14 @@ tar cf - myproject | hiloop sandbox ssh devbox -- 'tar xf - -C /workspace'
 hiloop sandbox ssh devbox -- 'tar cf - -C /workspace myproject' | tar xf -
 ```
 
-`rsync` and `scp` work too, with two conditions worth knowing before you debug them:
+`scp` and `sftp` also work, and need nothing inside the sandbox: the sandbox serves the SFTP
+subsystem itself, so they work against any image. `rsync` is different. It runs itself on both
+ends, so it needs the `rsync` binary in the sandbox, and the default image does not carry one —
+and anything a package manager installs lands outside `/workspace`, so an installed copy is gone
+on the next stop.
 
-1. Both tools must be installed **inside** the sandbox as well as locally. The default image has
-   neither.
-2. Neither can call `hiloop sandbox ssh` directly, because the CLI requires a `--` separator before
-   the remote command. Use a shim on your `PATH`:
+None of them can call `hiloop sandbox ssh` directly, because the CLI requires a `--` separator
+before the remote command. Use a shim on your `PATH`:
 
 ```sh
 #!/bin/sh
@@ -88,7 +90,7 @@ exec hiloop sandbox ssh "$box" -- "$@"
 ```
 
 ```sh
-rsync -av -e hiloop-ssh ./myproject/ devbox:/workspace/myproject/
+rsync -av -e hiloop-ssh ./myproject/ devbox:/workspace/myproject/   # needs rsync in the sandbox too
 ```
 
 For bulk, versioned data shared by many sandboxes the intended home is a volume
