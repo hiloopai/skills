@@ -79,7 +79,8 @@ and anything a package manager installs lands outside `/workspace`, so an instal
 on the next stop.
 
 None of them can call `hiloop sandbox ssh` directly, because the CLI requires a `--` separator
-before the remote command. Use a shim on your `PATH`:
+before the remote command. `rsync` takes a shim on your `PATH`, because `-e` invokes its transport
+as `<prog> <host> <command>`:
 
 ```sh
 #!/bin/sh
@@ -92,6 +93,10 @@ exec hiloop sandbox ssh "$box" -- "$@"
 ```sh
 rsync -av -e hiloop-ssh ./myproject/ devbox:/workspace/myproject/   # needs rsync in the sandbox too
 ```
+
+That shim does not fit `scp -S` / `sftp -S`: OpenSSH invokes a transport with its own options
+first (`-x -oForwardAgent=no … -- <host> <command>`), so the shim would read `-x` as the sandbox
+name. For those two, pipe a `tar` through `hiloop sandbox ssh` as above.
 
 For bulk, versioned data shared by many sandboxes the intended home is a volume
 (`managing-volumes`). Volumes can be created, pushed, and read back today, but `--volume` at create
