@@ -3,21 +3,21 @@ name: querying-observability-trees
 description: >-
   Capture and query hiloop's tree-native telemetry — what an agent actually did, keyed by its
   run-lineage path. Covers wrapping an agent with `hiloop run` (network capture modes, OTLP,
-  labels), orienting with `hiloop runs` (list / tree / show / complete), querying with read-only
+  labels), orienting with `hiloop runs` (list / show / tail / complete), querying with read-only
   SQL over the `events` table and registered views (`hiloop query`, pragmatic flags or `--sql`),
   following a run live with `hiloop runs tail`, scoping to a branch by `lineage_path`, fetching
   raw payload bytes with `hiloop events payload`, and diffing two runs. Use when asked to capture /
   observe / trace an agent run, query telemetry or LLM calls, compute token metrics, scope to a
   branch, follow a run live, or compare what two runs did.
 metadata:
-  version: 0.7.0
+  version: 0.8.0
 ---
 
 # Querying observability trees
 
 hiloop telemetry is **tree-native**: every event is keyed by its position in the run-lineage tree
 (`lineage_path`), so related runs read as one tree. You capture a run, then read it back at three
-altitudes: **orient** (`hiloop runs list` / `tree` / `show`), **query** (read-only SQL with
+altitudes: **orient** (`hiloop runs list` / `show`), **query** (read-only SQL with
 `hiloop query`), and **watch** (`hiloop runs tail`).
 
 ## 1. Capture a run
@@ -31,9 +31,9 @@ hiloop run --project default --label baseline -- claude -p "explain this repo"
 
 The project comes from `--project` > the `HILOOP_PROJECT` env var > the active context's default
 project (`hiloop config set-context <name> --project <slug>`) — with no match the command errors.
-`--label` names the run in `runs list` / `tree` (one is assigned when omitted). The telemetry
-endpoint is discovered from the active context automatically (`--endpoint` /
-`HILOOP_TELEMETRY_ENDPOINT` override it).
+`--label` names the run in `runs list` (one is assigned when omitted). The telemetry endpoint is
+discovered from the active context automatically (`--endpoint` / `HILOOP_TELEMETRY_ENDPOINT`
+override it).
 
 `hiloop run` is transparent (the child's output and exit code pass straight through) and announces
 the **run id** on stderr when the run registers (`hiloop: recorded run …`) — capture it, you need
@@ -56,20 +56,20 @@ egress policy.
 unavailable while the sandbox runtime is rebuilt — see `creating-sandboxes` — and there is no
 `hiloop sandbox run` verb any more.)
 
-## 2. Orient: list, tree, transcript
+## 2. Orient: list, scope to a tree, transcript
 
 `hiloop runs` is the orientation group — find a run, see its branches, read what it did:
 
 ```sh
-hiloop runs list --project default    # in-flight runs first; --status/--since/--label/--principal narrow
-hiloop runs tree 01K6Z…               # the lineage tree rooted at a run, parents above children
-hiloop runs show 01K70…               # one run's full event transcript, in time order
+hiloop runs list --project default     # in-flight first; --status/--since/--label/--principal narrow
+hiloop runs list --root-run-id 01K6Z…  # just the runs in one tree, by the tree's root_run_id
+hiloop runs show 01K70…                # one run's full event transcript, in time order
 ```
 
-`runs tree` takes `--columns '<schema>:<field>[,<field>…]'` (e.g.
-`experiment.v1:metrics.val_bpb`) to roll up each run's latest annotation of a registered schema
-next to the tree (see `annotating-runs`), and `--usage` to add measured resource-hours and token
-counts per subtree. `runs show --trace` prints a to-scale waterfall summary above the transcript;
+Every run in a tree carries the same `root_run_id`, so `runs list --root-run-id <id>` is the whole
+lineage as a flat listing. To put each branch's own numbers beside it (the latest annotation of a
+registered schema, a token or cost rollup), query for them instead: the `ann_<schema>` views take
+the same `root_run_id` scoping (§8), and the `events` table groups by `lineage_path` (§4).
 `runs show --output json` prints `{run, events}` — the run record plus the canonical event stream,
 payloads up to 64 KiB inlined under `payload_ref.inline`.
 
@@ -87,8 +87,8 @@ register runs yourself, stamp the ending with
 hiloop query --run-id 01K6Z… --signal llm
 ```
 
-Flags that build the query: `--run-id`, `--signal`, `--lineage-path`, `--fields`, `--limit`,
-`--since`, `--until` (`--since`/`--until` accept RFC 3339 or nanoseconds). `--fields` picks the
+Flags that build the query: `--run-id`, `--signal`, `--fields`, `--limit`, `--since`, `--until`
+(`--since`/`--until` accept RFC 3339 or nanoseconds). `--fields` picks the
 columns — comma-separated plain column names, or `*` for every column; omitted, you get a minimal
 default set (event id, time, signal, name, run identity, principal, payload size). The CLI prints a
 table; pass `--output json` for the raw rows (always full; table cells truncate — tune with
@@ -124,17 +124,22 @@ hand-writing a complex query.
 
 ## 5. Walk the tree: scope to one branch
 
-Every descendant run shares its parent's `lineage_path` prefix, so `--lineage-path` scopes a query
-to a whole subtree (the run *and* its descendant runs). Lineage is logical — it records which run
-descends from which, whatever mechanism created the child:
+Every descendant run shares its parent's `lineage_path` prefix, so a prefix predicate scopes a
+query to a whole subtree (the run *and* its descendant runs). Lineage is logical — it records
+which run descends from which, whatever mechanism created the child:
 
 ```sh
-hiloop query --run-id 01K6Z… --lineage-path 01K6Z….01K70… --signal net
+hiloop query --sql "
+  SELECT lineage_path, signal, name, ts_wall_ns
+  FROM events
+  WHERE root_run_id = '01K6Z…'
+    AND (lineage_path = '01K6Z….01K70…' OR lineage_path LIKE '01K6Z….01K70….%')
+    AND signal = 'net'
+  ORDER BY ts_wall_ns"
 ```
 
-This is how you "walk the tree": query the root for the whole run, then narrow to a child run's
-lineage path to descend into a branch. In raw SQL the same scoping is
-`WHERE lineage_path = '01K6Z….01K70…' OR lineage_path LIKE '01K6Z….01K70….%'`.
+This is how you "walk the tree": scope by `root_run_id` for everything under one root, then add
+the `lineage_path` prefix to descend into a single branch.
 
 ## 6. Follow a run live: `runs tail`
 
@@ -146,7 +151,7 @@ it left off) until you stop it with Ctrl-C (`--no-auto-resume` for a single conn
 hiloop runs tail 01K6Z… --signal llm
 ```
 
-Same scoping flags as `query` (`--lineage-path`, `--signal`); `--output json` prints each event as
+`--signal` narrows it the same way it narrows `query`; `--output json` prints each event as
 one JSON object per line. Payload contents up to 4 KiB stream inline under `payload_ref.inline`;
 larger bodies carry only their content reference — fetch the bytes exactly as captured with:
 
@@ -154,8 +159,8 @@ larger bodies carry only their content reference — fetch the bytes exactly as 
 hiloop events payload <event-id>
 ```
 
-This is what makes a fan-out tree watchable live — point it at the run root to watch every branch,
-or at one `--lineage-path` to follow a single arm.
+A tail follows one run id, so point it at the root run to watch the root's own events, or at a
+child run's id to follow a single arm.
 
 ## 7. Diff two runs: what did A do that B didn't?
 
@@ -190,13 +195,15 @@ Annotations land in the **same `events` table** (signal `annotation`), and every
 annotation schema also gives you a typed view named `ann_<schema>` — the schema name lowercased,
 every non-alphanumeric character turned into `_` (schema `experiment.v1` → view
 `ann_experiment_v1`; `data-views list` shows the exact names) — whose columns are the fields you
-promoted, plus the run-lineage identity. So "show me only the good branches" is one query:
+promoted, plus the run-lineage identity (`run_id`, `root_run_id`, `lineage_path`). Each view
+already returns the current annotation per anchor, so scoping one by `root_run_id` rolls a whole
+fan-out up in one query. "Show me only the good branches":
 
 ```sh
 hiloop query --sql "
-  SELECT lineage_path, outcome, score
+  SELECT run_id, lineage_path, outcome, score
   FROM ann_experiment_v1
-  WHERE run_id = '01K6Z…' AND outcome = 'pass' AND score > 0.9
+  WHERE root_run_id = '01K6Z…' AND outcome = 'pass' AND score > 0.9
   ORDER BY score DESC"
 ```
 

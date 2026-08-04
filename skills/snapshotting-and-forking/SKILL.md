@@ -8,7 +8,7 @@ description: >-
   snapshot, save, checkpoint, branch, or fork a sandbox, or to explore alternative agent paths from
   a common starting point.
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # Snapshotting and branching
@@ -95,8 +95,9 @@ retry.
 3. `hiloop sandbox create <arm-n> --from <baseline>`, once per approach.
 4. Run a different attempt in each (see `running-commands-in-a-sandbox`).
 5. Compare them through telemetry. Wrap each attempt's agent with `hiloop run` so the branches show
-   up in the run-lineage tree, then use `hiloop runs tree`, per-`lineage_path` queries, and
-   annotations to pick the winner — see `querying-observability-trees` and `annotating-runs`.
+   up in the run-lineage tree, then use `hiloop runs list --root-run-id`, per-`lineage_path`
+   queries, and annotations to pick the winner — see `querying-observability-trees` and
+   `annotating-runs`.
 
 Note that **run lineage and snapshot lineage are two different trees**. Snapshot parentage records
 which sandbox came from which; `lineage_path` records which *run* descends from which. Branch

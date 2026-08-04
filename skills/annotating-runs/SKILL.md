@@ -11,7 +11,7 @@ description: >-
   when asked to annotate, label, mark, score, or record a verdict or metric on a run, experiment,
   or branch — especially so experiments can self-annotate worked/failed + a metric.
 metadata:
-  version: 0.7.0
+  version: 0.8.0
 ---
 
 # Annotating runs
@@ -118,9 +118,9 @@ same query surface.
 (anchor, schema, target), no SQL needed:
 
 ```sh
-hiloop annotations list --run <run-id>             # a run's own annotations
-hiloop annotations list --run <run-id> --subtree   # the run's whole lineage subtree
-hiloop annotations list --project <slug>           # a project's run-less annotations
+hiloop annotations list --run <run-id>                    # a run's own annotations
+hiloop annotations list --run <run-id> --schema <name>    # just one schema's
+hiloop annotations list --project <slug>                  # a project's rollup, with a SCOPE column
 ```
 
 `--history` returns every stored version instead of just the current one.
@@ -137,8 +137,10 @@ hiloop query --sql "
   ORDER BY score DESC"
 ```
 
-`hiloop runs tree <root-run-id> --columns 'experiment.v1:score'` renders the latest rollup of a
-promoted field next to each run in the lineage tree — the fastest way to eyeball a fan-out.
+The view already returns the current annotation per anchor, so adding `root_run_id = '<root-run-id>'`
+to that `WHERE` clause rolls up a whole fan-out: one row per annotated run in the tree, which is the
+fastest way to eyeball one. `hiloop runs list --root-run-id <root-run-id>` lists the same tree's runs
+when you want the runs rather than their scores.
 
 An unpromoted field stays in the JSON payload — read it by name from the events table with
 `hiloop_json_get(attributes_json, 'note')`. See `querying-observability-trees` for the full query
