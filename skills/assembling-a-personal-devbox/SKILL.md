@@ -60,7 +60,8 @@ to the next `exec`.
 
 ## Get code and files in and out
 
-There is **no `sandbox cp`** — that verb was retired and is not coming back. Two paths exist.
+There is **no `sandbox cp` today** — the verb was removed by the fabric cutover and has not been
+rebuilt yet, so do not reach for it. Two paths exist meanwhile.
 
 Prefer cloning into `/workspace` from inside the sandbox, over its own outbound network. For files
 that only exist locally, pipe a tar archive through the shell. This needs nothing installed beyond
