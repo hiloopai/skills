@@ -19,7 +19,7 @@ definitions every turn.
 | [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered `exec` or over SSH); move files in and out |
 | [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
 | [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish and version large data once, mount it into many sandboxes |
-| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | A long-lived devbox over managed SSH (currently switched off — read it for the shape) |
+| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | Keep one sandbox as a long-lived dev environment: durable `/workspace`, managed SSH, stop/start |
 | [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a run a credential it uses but never sees (the secret broker) |
 | [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
@@ -63,10 +63,11 @@ paths, native alternatives, and unsupported-harness fallback instructions are in
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 
-> **Sandbox status.** The sandbox runtime is being rebuilt: no deployment serves the
-> `/v1/sandboxes` routes yet, so the `hiloop sandbox` and `hiloop devbox` commands do not execute
-> today. The sandbox skills document the settled contract those verbs return on and say so up front;
-> the rest of the bundle works now.
+> **Sandbox status.** The `hiloop sandbox` and `hiloop volume` verbs are served. Some capabilities
+> are still refused with an explicit `unsupported_capability` rather than silently degraded:
+> `create --from <snapshot>`, `--volume`, `--secret`, and `--capture`. `sandbox ssh` needs an
+> endpoint an operator enables per deployment. `hiloop devbox` was deleted; a devbox is assembled
+> from the plain sandbox verbs. Each sandbox skill says where it stands up front.
 
 For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
 [`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public
