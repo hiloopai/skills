@@ -8,7 +8,7 @@ description: >-
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
 metadata:
-  version: 0.1.3
+  version: 0.1.4
 ---
 
 # Run an autonomous research loop
@@ -268,17 +268,13 @@ key stay on the host. Sandboxes receive only the fixed task inputs, scorer, depe
 script, and prediction bytes.
 
 Mechanically stage the fixed files into every prepared member without inspecting their contents.
-Use base64 over `sandbox exec` for these KB-scale files; there is no file-copy verb:
+`hiloop sandbox cp` moves them directly, so no encoding step is needed:
 
 ```sh
-task_b64="$(base64 < TASK.md | tr -d '\n\r')"
-data_b64="$(base64 < data.py | tr -d '\n\r')"
-score_b64="$(base64 < score.py | tr -d '\n\r')"
-hiloop sandbox exec "$sandbox" --timeout 180 -- /bin/sh -c \
-  "mkdir -p '$HILOOP_AUTORESEARCH_ROOT'; \
-   printf '%s' '$task_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/TASK.md'; \
-   printf '%s' '$data_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/data.py'; \
-   printf '%s' '$score_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/score.py'"
+hiloop sandbox exec "$sandbox" --timeout 60 -- mkdir -p "$HILOOP_AUTORESEARCH_ROOT"
+for f in TASK.md data.py score.py; do
+  hiloop sandbox cp "$f" "$sandbox:$HILOOP_AUTORESEARCH_ROOT/$f"
+done
 ```
 
 Run arms strict round-robin. Encode only the candidate script, execute with a stable idempotency

@@ -18,8 +18,8 @@ self-contained; read the one that matches the task.
 > devbox from the plain sandbox verbs. Each sandbox skill says where it stands at the top.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
-groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / snapshot / stop /
-start / delete), `hiloop volume` (publish and version data sandboxes mount), `hiloop secret`,
+groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / cp / snapshot /
+stop / start / delete), `hiloop volume` (publish and version data sandboxes mount), `hiloop secret`,
 `hiloop workloads` (named machine identities to launch work as), `hiloop runs` (list / show /
 tail / complete), `hiloop query` (read-only SQL over captured events and views),
 `hiloop annotations` / `annotation-schema`, `hiloop data-views`, `hiloop usage`, `hiloop run`,
@@ -32,7 +32,7 @@ hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [-
 
 Install (single static binary): `curl -fsSL https://hiloop.ai/install.sh | sh`, then `hiloop --version`.
 The sandbox, snapshot, and volume verbs described here ship with the CLI's next release; an older
-installed CLI still carries retired verbs (`sandbox run`, `fork`, `cp`, `access`, `expose`,
+installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
 `port-forward`, `ssh-config`, `lease`, `tenant`) that no longer exist and that no deployment serves.
 Upgrade with `hiloop upgrade` rather than reaching for them.
 

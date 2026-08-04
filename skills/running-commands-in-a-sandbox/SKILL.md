@@ -29,8 +29,8 @@ it:
 - **Interactive or long-attended → `hiloop sandbox ssh`.** A real terminal over managed SSH. For
   exploration, REPLs, file transfer, and anything you steer by hand.
 
-There is no `hiloop sandbox run` one-shot verb, and no `sandbox cp`. If you want a sandbox that
-exists for a single command, create it, exec, and delete it.
+There is no `hiloop sandbox run` one-shot verb. If you want a sandbox that exists for a single
+command, create it, exec, and delete it.
 
 ## Buffered: `exec`
 
