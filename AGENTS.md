@@ -11,11 +11,11 @@ self-contained; read the one that matches the task.
 
 ## The interface: the `hiloop` CLI
 
-> **The sandbox runtime is mid-rebuild.** No deployment serves the `/v1/sandboxes` routes yet, so
-> every `hiloop sandbox` command returns a bare `404` today, and `hiloop devbox` refuses to run at
-> all. The sandbox skills document the settled contract those verbs return on, and say so at the
-> top. Everything else here — runs, telemetry, queries, annotations, secrets, workloads, volumes,
-> projects, keys — works today.
+> **Some sandbox capabilities are still refused.** The `hiloop sandbox` and `hiloop volume` verbs
+> are served, but `create --from <snapshot>`, `--volume`, `--secret`, and `--capture` are refused
+> with an explicit `unsupported_capability` rather than silently degraded, and `sandbox ssh` needs
+> an endpoint an operator enables per deployment. `hiloop devbox` was deleted outright — assemble a
+> devbox from the plain sandbox verbs. Each sandbox skill says where it stands at the top.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / snapshot / stop /
@@ -74,7 +74,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | `running-commands-in-a-sandbox` | Run commands (buffered `exec`, interactive SSH); move files in and out |
 | `snapshotting-and-forking` | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
 | `managing-volumes` | Publish and version large data once, mount it into many sandboxes |
-| `assembling-a-personal-devbox` | A long-lived devbox over managed SSH (currently switched off — read for the shape) |
+| `assembling-a-personal-devbox` | Keep one sandbox as a long-lived dev environment: durable `/workspace`, managed SSH, stop/start |
 | `managing-secrets` | Give a run a credential it uses but never sees (the secret broker) |
 | `launching-as-workloads` | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |

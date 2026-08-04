@@ -1,92 +1,135 @@
 ---
 name: assembling-a-personal-devbox
 description: >-
-  Assemble a long-lived development sandbox — a personal devbox — that persists across stops and is
-  reached over managed SSH. NOTE: every `hiloop devbox` command currently refuses to run while the
-  sandbox runtime is rebuilt; this skill documents the shape it returns to and what you can do
-  meanwhile. Use when asked to set up a devbox, a persistent remote dev environment, or to
+  Assemble a long-lived development sandbox — a personal devbox — from the ordinary `hiloop sandbox`
+  verbs: durable storage so `/workspace` survives a stop, managed SSH as the front door, `exec` for
+  scripted work, and stop/start to park it. There is no `hiloop devbox` command; it was deleted.
+  Covers getting code in and out over the session plane, and the limits that make this unlike a
+  virtual machine. Use when asked to set up a devbox, a persistent remote dev environment, or to
   SSH into a sandbox.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # Assembling a personal devbox
 
-> **Status: `hiloop devbox` is switched off.** Every subcommand (`create`, `list`, `ssh`, `stop`,
-> `delete`) parses its arguments and then refuses, with exactly this message:
->
-> ```
-> sandbox fabric is being rebuilt — devbox commands return in the next release
-> ```
->
-> This is a hard client-side bail — there is no flag, environment variable, or API path that works
-> around it. Do not try. The generic `hiloop sandbox` verbs are also not yet served by the API edge
-> (see `creating-sandboxes`), so there is currently **no working path to a hosted devbox**. Read the
-> rest of this skill as the shape the surface returns to; verify the flags against
-> `hiloop devbox create --help` when it comes back, because the previous flag set did not survive
-> the rebuild intact.
+> **There is no `hiloop devbox` command.** The whole tree (`create`, `list`, `ssh`, `stop`,
+> `delete`) was deleted — every verb was a client-side stub that refused before touching the
+> network, and none of it is coming back. A devbox is not a product surface; it is a plain sandbox
+> you keep around. If a `hiloop devbox …` invocation appears in an old script, replace it with the
+> `hiloop sandbox` equivalent below rather than looking for a flag that revives it.
 
-A personal devbox is a long-lived sandbox assembled deliberately: durable storage, an idle timeout
-instead of a hard deadline, and SSH as the front door. Processes and memory do not survive a
-suspend — durable state lives on disk.
+A personal devbox is an ordinary sandbox assembled deliberately: durable storage so your working
+tree outlives a stop, no TTL so it lives until you delete it, and SSH as the front door. Everything
+here composes primitives from `creating-sandboxes` and `running-commands-in-a-sandbox`.
 
-## What you can do meanwhile
+> Authenticate first (`authenticating`), with a project selected.
 
-- **Local agent work is unaffected.** `hiloop run` captures an agent running on your own machine,
-  with full telemetry, annotations, and secret binding. See `querying-observability-trees` and
-  `managing-secrets`.
-- **Report it if it blocks you.** `hiloop feedback "…" --surface sandbox` (see
-  `reporting-product-bugs`) — that is the signal that decides sequencing.
-- **Do not** hand-roll a substitute by putting credentials into some other remote host to imitate a
-  devbox. The secret-handling rules below apply everywhere.
+## Create it once
 
-## The intended shape (returns after the rebuild)
+```sh
+hiloop sandbox create devbox --storage-class durable --cpus 4 --memory-mb 8192
+```
 
-`hiloop devbox create [name]` takes its own flag set, separate from `hiloop sandbox create`:
-`--image` xor `--profile`, `--cpus`, `--memory-mb`, `--disk-mb`, `--gpus` / `--gpu-model`, `--arch`,
-`--capture`, `--network-mode`, `--egress-mode`, `--max-runtime`, `--idle-timeout` xor
-`--no-idle-reclaim`, `--as workload/<name>`, and `--secret`. Omitting both image and profile selects
-a `devbox-cpu-durable` default.
+Three choices make it a devbox:
 
-**Treat that list as provisional.** It is what the CLI's argument parser still declares, but the
-runtime underneath it was deleted and rebuilt, and several neighbouring flag sets (notably on
-`hiloop sandbox create`) were cut down substantially in the same rebuild. Re-read `--help` before
-relying on any of it.
+- **`--storage-class durable`** mounts `/workspace` as storage with its own lifetime. Files written
+  there survive a stop and survive losing the sandbox's node. Everything outside `/workspace` comes
+  back from the image. This is the one flag you must not omit.
+- **No `--ttl`.** An omitted TTL takes the deployment default, which on the hosted service is no
+  expiry. Check the `expires` row of `hiloop sandbox get devbox` if your deployment sets one.
+- **No `--image`.** The platform default image is a Debian base with Python, Node, `bash`, `tar`,
+  and `curl`. Read the [image limits](#what-does-not-work-yet) before reaching for `--image`.
 
-The choices that make a sandbox a devbox:
+## Work in it
 
-- **Durable storage**, so a stop is not destructive.
-- **`--no-idle-reclaim`** to keep it running until you stop it, or **`--idle-timeout 7200`** if
-  suspend-and-wake fits your workflow. Don't set `--max-runtime` on a devbox — an actively used one
-  should be able to run indefinitely.
-- **Managed network with egress allowed**, for package installs and git clones.
+```sh
+hiloop sandbox ssh devbox                                   # interactive shell
+hiloop sandbox ssh devbox -- 'cd /workspace/api && cargo test'
+hiloop sandbox ssh devbox -- -L 3000:127.0.0.1:3000 -N      # reach a dev server
+hiloop sandbox exec devbox --timeout 600 -- bash -lc 'cd /workspace/api && cargo build'
+```
 
-### Verbs that are gone for good
+`ssh` needs the sandbox SSH endpoint, which an operator enables per deployment and which is off by
+default; where it is off, a connect is refused with `unsupported_capability`. `exec` needs no
+session and is the right verb for scripted, non-interactive steps: it returns the command's real
+exit code with stdout and stderr kept separate.
 
-The previous devbox workflow leaned on verbs that **were removed and are not coming back**:
-`hiloop sandbox ssh-config print` / `install`, `hiloop sandbox access list` / `grant` / `revoke`,
-`hiloop sandbox expose` / `unexpose` / `ports`, `hiloop sandbox port-forward`, and
-`--workspace-revision` / `--workspace-target`. Preview URLs and HTTP exposure are a later phase.
-Sharing a devbox with a teammate has no supported command today.
+Both land in the same container and see the same filesystem, so a file written over SSH is visible
+to the next `exec`.
 
-Port forwarding survives, but through stock OpenSSH rather than a hiloop flag: everything after `--`
-on `hiloop sandbox ssh` is passed straight to `ssh`, so use `-L 3000:localhost:3000`. Likewise file
-transfer is rsync/scp over that same managed-SSH path, not a `cp` verb.
+## Get code and files in and out
+
+There is **no `sandbox cp`** — that verb was retired and is not coming back. Two paths exist.
+
+Prefer cloning into `/workspace` from inside the sandbox, over its own outbound network. For files
+that only exist locally, pipe a tar archive through the shell. This needs nothing installed beyond
+`tar`, which the default image has:
+
+```sh
+tar cf - myproject | hiloop sandbox ssh devbox -- 'tar xf - -C /workspace'
+hiloop sandbox ssh devbox -- 'tar cf - -C /workspace myproject' | tar xf -
+```
+
+`rsync` and `scp` work too, with two conditions worth knowing before you debug them:
+
+1. Both tools must be installed **inside** the sandbox as well as locally. The default image has
+   neither.
+2. Neither can call `hiloop sandbox ssh` directly, because the CLI requires a `--` separator before
+   the remote command. Use a shim on your `PATH`:
+
+```sh
+#!/bin/sh
+# hiloop-ssh
+box=$1
+shift
+exec hiloop sandbox ssh "$box" -- "$@"
+```
+
+```sh
+rsync -av -e hiloop-ssh ./myproject/ devbox:/workspace/myproject/
+```
+
+For bulk, versioned data shared by many sandboxes the intended home is a volume
+(`managing-volumes`). Volumes can be created, pushed, and read back today, but `--volume` at create
+is still refused, so a volume is not yet a working ingress for a devbox.
 
 ## Place state deliberately
 
-- **Source trees and home state** go on the durable disk. Keep dotfiles in a subtree so they share
-  its lifecycle.
-- **Caches and build outputs** are reconstructible — keeping them is an explicit size/speed
-  trade-off.
-- **Credentials never go on the devbox disk.** It is captured by every snapshot and visible to
-  anyone you share the box with. Use the write-only secret store for service credentials
-  (`managing-secrets`) and short-lived interactively-entered tokens for personal ones. Never copy a
-  long-lived private key in.
+- **Source trees and dotfiles** go under `/workspace`. Nothing else survives a stop.
+- **Package installs land outside `/workspace`** and are lost on the next start. Keep a setup script
+  under `/workspace` and re-run it after a start.
+- **Credentials never go on the disk.** Use the write-only secret store for service credentials
+  (`managing-secrets`) and short-lived, interactively entered tokens for personal ones. Never copy
+  a long-lived private key in.
 
-## Suspend and wake
+## Park it and pick it up
 
-The intended loop: the devbox suspends when idle, and the next connect wakes it into the same
-filesystem within seconds. Expect the exact disk back under a **new runtime generation**, and expect
-every process from the previous generation to be gone — shells, servers, multiplexer sessions.
-Anything you want to survive must be a file.
+```sh
+hiloop sandbox stop devbox
+hiloop sandbox start devbox
+hiloop sandbox delete devbox      # permanent; releases the durable /workspace
+```
+
+## What does not work yet
+
+State these plainly to the user rather than working around them.
+
+- **A stop loses every process, not just the foreground shell.** Only `/workspace` survives. A
+  running build, a dev server, a multiplexer session, and anything installed into the system
+  directories are gone on the next start. You get files back, not a session. Do not promise resume.
+- **A start can report `running` before the sandbox can serve.** `sandbox get` reads `running` while
+  the first `exec` or `ssh` is still refused, sometimes for around two minutes, while the previous
+  instance releases its storage. On a failure right after a start, wait and retry; do not conclude
+  the sandbox is broken.
+- **There is no development-shaped default image**, and bringing your own is not a reliable answer
+  yet: a sandbox runs the image's own entrypoint, and an image whose entrypoint exits immediately —
+  true of most base images — fails to materialize rather than idling. An image works here only if it
+  keeps a process running.
+- **`--volume` mounts are refused** with `unsupported_capability`.
+- **`sandbox create --from <snapshot>` is refused**, so you cannot yet rebuild a configured devbox
+  from a snapshot or branch one for an experiment. Taking the snapshot works; starting from it does
+  not.
+
+If one of these blocks real work, report it: `hiloop feedback "…" --surface sandbox`
+(`reporting-product-bugs`). That is the signal that decides sequencing.
