@@ -4,11 +4,11 @@ description: >-
   Run commands inside a hiloop sandbox and get results out. Covers the buffered
   `hiloop sandbox exec` (timeout ceiling, output truncation, exit codes, safe retries with
   idempotency keys), interactive terminals over managed SSH (`hiloop sandbox ssh`, port forwarding
-  via stock OpenSSH flags), and moving files across the boundary with volumes and rsync over SSH.
+  via stock OpenSSH flags), and moving files across the boundary with volumes and scp/sftp over SSH.
   Use when asked to run a command, script, build, or test inside a hiloop sandbox, to work in one
   interactively, or to get files in or out.
 metadata:
-  version: 0.6.0
+  version: 0.6.1
 ---
 
 # Running commands in a sandbox
@@ -100,8 +100,10 @@ There is no file-copy verb. Pick the path that fits the data:
 - **Bulk data in:** publish it as a **volume** and mount it at create
   (`--volume <name>:/data`) — see `managing-volumes`. This is the right answer for datasets, model
   caches, and checkpoints.
-- **Bulk data either direction, interactively:** rsync/scp over managed SSH. Since `sandbox ssh`
-  runs stock OpenSSH, file transfer rides the same path once the session plane is serving.
+- **Bulk data either direction, interactively:** `scp` or `sftp` over managed SSH. `sandbox ssh`
+  runs stock OpenSSH and the sandbox serves the SFTP subsystem itself, so both work against any
+  image with nothing installed. `rsync` does not: it runs itself on both ends, so it needs the
+  `rsync` binary inside the image, and the default image does not carry one.
 - **Small results out:** write them to a file, then read them back with
   `exec -- cat /path/to/summary.json` — but mind the output truncation above.
 - **Inputs from the network:** with egress allowed, fetch them from inside
