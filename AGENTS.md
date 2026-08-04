@@ -20,7 +20,7 @@ self-contained; read the one that matches the task.
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / snapshot / stop /
 start / delete), `hiloop volume` (publish and version data sandboxes mount), `hiloop secret`,
-`hiloop workloads` (named machine identities to launch work as), `hiloop runs` (list / tree / show /
+`hiloop workloads` (named machine identities to launch work as), `hiloop runs` (list / show /
 tail / complete), `hiloop query` (read-only SQL over captured events and views),
 `hiloop annotations` / `annotation-schema`, `hiloop data-views`, `hiloop usage`, `hiloop run`,
 `hiloop login`, `hiloop skills` (install this bundle) — and a generic authenticated passthrough for

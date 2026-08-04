@@ -2,7 +2,7 @@
 
 `hiloop query` runs a **read-only `SELECT`** against a single denormalized table, `events`, holding
 every captured telemetry event — plus your registered views. The pragmatic flags (`--run-id`,
-`--signal`, `--lineage-path`, `--fields`, `--since`/`--until`, `--limit`) build a
+`--signal`, `--fields`, `--since`/`--until`, `--limit`) build a
 `SELECT … FROM events WHERE …` for you — `--fields` picks the columns (plain names, or `*` for every
 column; omitted, a minimal default set); `--sql` sends an arbitrary `SELECT` (inline, `@file`, or
 `-`/`@-` for stdin). There is one query surface — SQL.
@@ -155,7 +155,8 @@ untruncated machine view.
 
 ## Related commands (their own verbs, not SQL)
 
-- **`hiloop runs tail <run-id>`** — follow a run's events live; same `--signal`/`--lineage-path` scoping.
+- **`hiloop runs tail <run-id>`** — follow a run's events live; `--signal` narrows it.
+- **`hiloop runs list --root-run-id <id>`** — the runs of one lineage tree, without SQL.
 - **`hiloop runs show <run-id>`** — one run's transcript, time-ordered, small payloads resolved inline.
 - **`hiloop events payload <event-id>`** — the raw captured payload bytes, exactly as captured.
 - **`hiloop api /v1/telemetry/branch-diff`** — server-side set-difference of two runs' subtrees; the

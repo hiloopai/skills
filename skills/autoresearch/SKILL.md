@@ -8,7 +8,7 @@ description: >-
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
 metadata:
-  version: 0.1.2
+  version: 0.1.3
 ---
 
 # Run an autonomous research loop
@@ -235,8 +235,8 @@ Before exiting:
 ## 7. Show the evidence
 
 ```sh
-hiloop annotations list --run "$HILOOP_RUN_ID" --subtree
-hiloop runs tree "$HILOOP_RUN_ID" --columns 'hiloop.idea:score,outcome'
+hiloop annotations list --run "$HILOOP_RUN_ID"
+hiloop runs list --root-run-id "$HILOOP_RUN_ID"
 hiloop query --project "$HILOOP_PROJECT" --sql \
   "SELECT headline, score, outcome FROM ann_hiloop_idea ORDER BY score"
 ```
