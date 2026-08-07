@@ -12,29 +12,30 @@ self-contained; read the one that matches the task.
 ## The interface: the `hiloop` CLI
 
 > **Some sandbox capabilities are still refused.** The `hiloop sandbox` and `hiloop volume` verbs
-> are served, but `create --from <snapshot>`, `--volume`, `--secret`, and `--capture` are refused
-> with an explicit `unsupported_capability` rather than silently degraded, and `sandbox ssh` needs
-> an endpoint an operator enables per deployment. `hiloop devbox` was deleted outright — assemble a
-> devbox from the plain sandbox verbs. Each sandbox skill says where it stands at the top.
+> are served, but `--volume`, `--secret`, `--capture on`, and a nonzero `--gpus` are refused with an
+> explicit `unsupported_capability` rather than silently degraded; `--storage-class durable` (and so
+> `create --from <snapshot>`, which forks into a durable workspace) and `sandbox ssh` / `cp` depend
+> on what the deployment provides. `hiloop devbox` was deleted outright — assemble a devbox from the
+> plain sandbox verbs. Each sandbox skill says where it stands at the top.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / cp / snapshot /
 stop / start / delete), `hiloop volume` (publish and version data sandboxes mount), `hiloop secret`,
-`hiloop workloads` (named machine identities to launch work as), `hiloop runs` (list / show /
-tail / complete), `hiloop query` (read-only SQL over captured events and views),
-`hiloop annotations` / `annotation-schema`, `hiloop data-views`, `hiloop usage`, `hiloop run`,
-`hiloop login`, `hiloop skills` (install this bundle) — and a generic authenticated passthrough for
-any route without one:
+`hiloop workloads` (named machine identities to launch work as), `hiloop projects`, `hiloop runs`
+(list / show / tail / complete), `hiloop query` (read-only SQL over captured events and views),
+`hiloop events payload` (raw captured bodies), `hiloop annotations` / `annotation-schema`,
+`hiloop data-views`, `hiloop usage`, `hiloop run`, `hiloop login` / `keys`, `hiloop skills`
+(install this bundle) — and a generic authenticated passthrough for any route without one:
 
 ```sh
 hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [--output json]
 ```
 
 Install (single static binary): `curl -fsSL https://hiloop.ai/install.sh | sh`, then `hiloop --version`.
-The sandbox, snapshot, and volume verbs described here ship with the CLI's next release; an older
-installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
-`port-forward`, `ssh-config`, `lease`, `tenant`) that no longer exist and that no deployment serves.
-Upgrade with `hiloop upgrade` rather than reaching for them.
+An older installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
+`port-forward`, `ssh-config`, `devbox`, `lease`, `tenant`) that no longer exist and that no
+deployment serves. Upgrade with `hiloop upgrade` rather than reaching for them, and re-install the
+skills (`hiloop skills install`) so the guidance matches the binary.
 
 There is no MCP server by design — a CLI the agent already knows how to drive costs far less context
 than loading tool definitions every turn. The TypeScript (`@hiloopai/sdk`) and Python (`hiloop`) SDKs
@@ -46,12 +47,15 @@ exist for writing application code that runs *inside* a sandbox, not for operati
    live — save a context (`hiloop config set-context`) or set `HILOOP_API_URL`. `hiloop login` is the
    default; use `HILOOP_API_KEY` only when headless / in CI. Then run `hiloop whoami` before anything
    else. → `authenticating`
-2. **Select a project explicitly.** Project selection is explicit everywhere (`--project` >
-   `HILOOP_PROJECT` > the context's project — no guessing). Tenant scope is implied by your
-   credential; there is no tenant-switching command.
-3. **Name the environment explicitly.** Every sandbox create passes exactly one of `--image`
-   (an unmodified OCI image, digest-pinned in production) or `--from <snapshot>`. There is no default
-   image and no sizing flags — the environment is the image or the snapshot, nothing implicit.
+2. **Select a project explicitly.** Project selection never guesses: `--project` where the command
+   takes it (`run`, `runs list`, `query`, `volume …`, `annotations …`), otherwise `HILOOP_PROJECT` >
+   the active context's project. The `sandbox` verbs have no `--project` flag — set the environment
+   variable or the context. Tenant scope is implied by your credential; there is no tenant-switching
+   command.
+3. **Name the environment explicitly.** A sandbox create takes at most one of `--image` (an
+   unmodified OCI image, digest-pinned in production) or `--from <snapshot>`; omitting both boots the
+   platform default image, which is a convenience, not an environment identity. Size it with
+   `--cpus` / `--memory-mb`, each defaulting to the deployment's own default.
 4. **Create blocks; refusals are answers.** `sandbox create` runs until the sandbox is running or
    reaches a terminal state — there is no operation to poll and no `--wait`. When a command refuses
    (a capability error, a fail-closed secret binding), treat it as the answer, not as something to
@@ -92,8 +96,8 @@ run divergent work (credentials via hiloop run --secret) → annotate outcomes �
 query per lineage_path / diff two runs → delete sandboxes
 ```
 
-The sandbox steps in that loop are the shape the rebuilt runtime returns to; today only the
-non-sandbox steps execute (see the status note above).
+The `--volume` and `--secret` attachments in that loop are the steps a deployment still refuses (see
+the status note above); the rest executes.
 
 ## Secrets
 

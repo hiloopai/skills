@@ -64,11 +64,9 @@ hiloop run --as workload/codex-runner -- codex "fix the failing test"
 
 The work is then attributed to that workload; you must hold launch rights on it.
 
-> **Which verbs take `--as`.** Today only **`hiloop run`**. `hiloop sandbox create` no
-> longer has an `--as` flag — it was dropped in the sandbox-runtime rebuild along with most of that
-> verb's flag set — and `hiloop sandbox run` no longer exists at all. The `hiloop devbox` tree,
-> which also declared `--as`, was deleted. So workload attribution is a **captured-run** feature
-> right now.
+> **Which verbs take `--as`.** Today only **`hiloop run`**. `hiloop sandbox create` has no `--as`
+> flag, `hiloop sandbox run` does not exist, and the `hiloop devbox` tree that also declared it was
+> deleted. So workload attribution is a **captured-run** feature right now.
 > There is also no identity-bound egress policy any more; the egress product surface was removed.
 
 An unregistered name **fails closed** at registration time — the run is never created:

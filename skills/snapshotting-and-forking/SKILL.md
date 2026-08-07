@@ -8,16 +8,16 @@ description: >-
   snapshot, save, checkpoint, branch, or fork a sandbox, or to explore alternative agent paths from
   a common starting point.
 metadata:
-  version: 0.7.0
+  version: 0.8.0
 ---
 
 # Snapshotting and branching
 
-> **Status: the sandbox runtime is mid-rebuild — these commands do not work against a deployment
-> yet.** `hiloop sandbox snapshot` ships with the CLI's next release (an already-installed CLI does
-> not have it), and no deployment serves the `/v1/sandboxes` or `/v1/snapshots` routes yet, so a call
-> returns a bare `404`. The surface below is the settled contract they return on. See
-> `creating-sandboxes` for the full status.
+> **Both halves are deployment capabilities.** Sealing a snapshot needs a deployment with a seal
+> executor, and `create --from` puts the forked state in the child's **own durable workspace** — so
+> the child is created with `--storage-class durable`, and a deployment without a durable workspace
+> class refuses it. Either refusal arrives as an explicit `unsupported_capability`, never as a
+> half-done fork.
 
 hiloop's distinctive primitive: **snapshot** a sandbox's state, then create N sandboxes **from**
 that snapshot so several attempts diverge from an identical starting point.
@@ -63,9 +63,9 @@ a fan-out tree readable after the fact. There is no `snapshot get`; use `list` w
 ## Branch: create from a snapshot
 
 ```sh
-hiloop sandbox create arm-lr-004 --from baseline-after-setup
-hiloop sandbox create arm-lr-008 --from baseline-after-setup
-hiloop sandbox create arm-lr-016 --from baseline-after-setup
+hiloop sandbox create arm-lr-004 --from baseline-after-setup --storage-class durable
+hiloop sandbox create arm-lr-008 --from baseline-after-setup --storage-class durable
+hiloop sandbox create arm-lr-016 --from baseline-after-setup --storage-class durable
 ```
 
 Each is an independent sandbox starting from identical bytes. **N concurrent `create --from` against
@@ -73,9 +73,9 @@ one snapshot is the fan-out primitive** — that is the intended way to explore 
 once. Fork-tree lineage is recorded from snapshot parentage, so the relationship between branches
 survives in the record.
 
-`--from` is mutually exclusive with `--image`; everything else on `create` (`--ttl`,
-`--storage-class`, `--port`, `--volume`, `--secret`, `--capture`, `--metadata`) applies normally —
-see `creating-sandboxes`.
+`--from` is mutually exclusive with `--image` and needs `--storage-class durable`, because the
+snapshot is forked into the child's own durable workspace; everything else on `create` (`--ttl`,
+`--port`, `--cpus`, `--memory-mb`, `--metadata`) applies normally — see `creating-sandboxes`.
 
 ## Safe retries: idempotency keys
 

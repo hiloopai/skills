@@ -14,7 +14,7 @@ definitions every turn.
 | Skill | Use it to |
 |---|---|
 | [`autoresearch`](skills/autoresearch/SKILL.md) | Run an autonomous research loop with evolving idea cards, scored experiments, an ensemble, and a leaderboard |
-| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
+| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, mint and revoke keys |
 | [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / stop / start / delete sandboxes; boot from an image or a snapshot |
 | [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered `exec` or over SSH); move files in and out |
 | [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
@@ -65,9 +65,10 @@ Then ask your agent to capture a run and query the trace tree — the skills gui
 
 > **Sandbox status.** The `hiloop sandbox` and `hiloop volume` verbs are served. Some capabilities
 > are still refused with an explicit `unsupported_capability` rather than silently degraded:
-> `create --from <snapshot>`, `--volume`, `--secret`, and `--capture`. `sandbox ssh` needs an
-> endpoint an operator enables per deployment. `hiloop devbox` was deleted; a devbox is assembled
-> from the plain sandbox verbs. Each sandbox skill says where it stands up front.
+> `--volume`, `--secret`, `--capture on`, and a nonzero `--gpus`. `--storage-class durable` (and so
+> `create --from <snapshot>`) and `sandbox ssh` / `cp` depend on what the deployment provides.
+> `hiloop devbox` was deleted; a devbox is assembled from the plain sandbox verbs. Each sandbox skill
+> says where it stands up front.
 
 For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
 [`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public

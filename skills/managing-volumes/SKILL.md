@@ -8,7 +8,7 @@ description: >-
   admission. Use when many sandboxes share the same input data, when data is too large to move
   through a command's output, or when asked to publish, version, or mount a dataset.
 metadata:
-  version: 0.3.0
+  version: 0.4.0
 ---
 
 # Managing volumes
@@ -17,18 +17,16 @@ A **volume** is a named, versioned reference to large data — a dataset, a mode
 tree — that sandboxes **mount instead of copying**. You push a local tree once to publish an
 immutable version; content is stored once, deduplicated by digest, and shared across every attach.
 
-> **Status.** The volume **routes are served** — publishing and versioning data works today. Two
-> caveats: the `hiloop volume` verbs ship with the CLI's next release (an already-installed CLI
-> reports `unrecognized subcommand 'volume'`; until you upgrade, reach the same routes through
-> `hiloop api /v1/volumes …`), and **mounting** a volume into a sandbox waits on the sandbox runtime
-> rebuild (see `creating-sandboxes`). You can publish and version data now; you cannot consume it
-> from a sandbox yet.
+> **Publishing works; mounting is a deployment capability.** `hiloop volume create` / `push` /
+> `list` / `get` / `delete` are served. `sandbox create --volume` is refused at admission with
+> `unsupported_capability` where the deployment has no mount transport — fail-closed rather than a
+> sandbox that quietly starts without its data. Check with a throwaway create before designing a
+> pipeline around mounts.
 
 The surface is exactly five verbs plus one create-time flag. **There is no `hiloop volume
 prefetch`** — the node-cache pre-warm verb was removed; do not reach for it. Volumes are for bulk,
 versioned data many sandboxes share; to get files into one running sandbox, use `hiloop sandbox cp`
-(`running-commands-in-a-sandbox`), which is the ingress that works today while mounting waits on
-the rebuild.
+(`running-commands-in-a-sandbox`).
 
 > Authenticate first (the `authenticating` skill) and pick a project — a volume lives in a project
 > and its name is unique within it.

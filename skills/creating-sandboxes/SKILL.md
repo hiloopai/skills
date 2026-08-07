@@ -2,35 +2,28 @@
 name: creating-sandboxes
 description: >-
   Create, inspect, stop, start, and delete hiloop sandboxes — isolated environments an agent runs
-  in. Covers the create→use→delete lifecycle with the `hiloop sandbox` commands, the required
-  image-or-snapshot choice, storage class, published ports, volume mounts, telemetry capture, TTL,
-  metadata, and idempotent retries. Use when asked to spin up / provision / launch a hiloop sandbox
-  or environment, choose its image, stop or start one, or tear one down.
+  in. Covers the create→use→delete lifecycle with the `hiloop sandbox` commands, the
+  image / snapshot / platform-default source choice, sizing, storage class, published ports, volume
+  mounts, telemetry capture, TTL, metadata, and idempotent retries. Use when asked to spin up /
+  provision / launch a hiloop sandbox or environment, choose its image, stop or start one, or tear
+  one down.
 metadata:
-  version: 0.9.0
+  version: 0.10.0
 ---
 
 # Creating sandboxes
 
-> **Status: the sandbox runtime is mid-rebuild — these commands do not work against a deployment
-> yet.** Two separate things are true, and both matter:
->
-> 1. **The verbs below ship with the CLI's next release.** They are the settled contract. An
->    already-installed CLI still carries the *previous* sandbox surface (`sandbox run`, `fork`,
->    `access`, `expose`, `port-forward`, `ssh-config`, `shell`, `stream`) — those verbs were
->    removed, and nothing on this page depends on them.
-> 2. **No deployment serves the `/v1/sandboxes` routes yet.** A call returns a bare `404` with an
->    empty body — not the usual `{"code": …, "message": …}` envelope, and not a helpful client-side
->    message. Recognise that shape for what it is: an unserved route, not a bad request of yours.
->
-> So read this as the contract, not as runnable steps. Don't invent verbs or workarounds to get
-> around the 404: capture agent work locally with `hiloop run` instead
-> (`querying-observability-trees`), and expect this surface back with the rebuilt runtime.
+> **A refusal is an answer.** These verbs are served and work against a deployment. Some create-time
+> capabilities are refused at admission with an explicit `unsupported_capability` instead of being
+> silently degraded: `--volume`, `--secret`, `--capture on`, and `--gpus` above `0`. `--storage-class
+> durable` (and therefore `--from`) needs a deployment that provides a durable workspace class.
+> When one of those refuses, treat it as the deployment's answer — don't invent a verb, a flag, or a
+> workaround.
 
 A **sandbox** is an isolated environment your agent runs in. It boots from an **unmodified OCI
-image** or from a **snapshot**. The lifecycle is: create (which blocks until running) → use →
-delete. For fields without a dedicated flag, drop to `hiloop api`, the authenticated passthrough for
-any REST route.
+image**, from a **snapshot**, or from the **platform default image**. The lifecycle is: create
+(which blocks until running) → use → delete. For fields without a dedicated flag, drop to
+`hiloop api`, the authenticated passthrough for any REST route.
 
 > Authenticate first (see the `authenticating` skill).
 
@@ -58,18 +51,30 @@ verb — if you reach for one, it does not exist.
 
 ## Create
 
-The name is **positional**, and **exactly one of `--image` or `--from` is required**:
+The name is **positional**, and the source is at most one of `--image` or `--from`:
 
 ```sh
 hiloop sandbox create experiment-a --image ubuntu:24.04
-hiloop sandbox create experiment-b --from <snapshot-name-or-id>
+hiloop sandbox create experiment-b --from <snapshot-name-or-id> --storage-class durable
+hiloop sandbox create scratch                                   # platform default image
 ```
 
 - `--image <ref>` boots an **unmodified customer OCI image** — no image build step, no baked-in
   agent. Pin production environments by digest (`repository@sha256:…`); a tag is not an environment
   identity.
 - `--from <snapshot>` boots from a snapshot instead. This one flag is restore, fork, and branch —
-  see `snapshotting-and-forking`.
+  see `snapshotting-and-forking`. The snapshot forks into the child's own durable workspace, so pass
+  `--storage-class durable` with it; on standard storage it is refused.
+- **Omit both** and you get the platform default image (Python, Node, git, and a build toolchain
+  preinstalled). Name the image explicitly for anything reproducible — the default is a convenience,
+  not an environment identity.
+
+An image whose own entrypoint exits needs a long-running command after `--`, because a sandbox lives
+only as long as that process:
+
+```sh
+hiloop sandbox create dev --image ubuntu:24.04 -- sleep infinity
+```
 
 **Create blocks until the sandbox is running** (or reaches a terminal state) and prints a progress
 line; there is no `--wait` flag and no separate poll-until-ready step. `--output json` prints the
@@ -92,11 +97,13 @@ runtime, so do not pass them.
 | `--volume <VOLUME:/abs/path>` | Mount a pre-registered volume. Repeatable. See `managing-volumes`. |
 | `--secret <name>` | Request a pre-registered secret binding. Repeatable — but see the caveat below. |
 | `--capture on\|off` | Override the deployment's telemetry capture default. |
+| `--output table\|json` | Output format; `json` prints the raw body. |
 | `--metadata <KEY=VALUE>` | Caller-owned metadata, also filterable on `list`. Repeatable. |
 | `--idempotency-key <key>` | Replay key; one is generated per invocation when omitted. |
 
 `--volume` and `--secret` reference **pre-registered resources only** — register them first, so
-create validation is total and never half-succeeds.
+create validation is total and never half-succeeds. Both, plus `--capture on` and a nonzero
+`--gpus`, are refused at admission where the deployment has no transport or capacity for them.
 
 ### Idempotent retries
 
@@ -149,8 +156,7 @@ runtime generation** — the filesystem returns, every process and all memory st
 generation is gone. (Memory restore is a committed later phase, not v1.)
 
 **`delete` does not prompt.** It is immediate and irreversible — there is no "are you sure" to catch
-a mistake, and the `--yes` flag is accepted but does nothing (it is hidden from `--help` for that
-reason). Snapshot anything you might want back *before* deleting.
+a mistake and no `--yes` flag to pass. Snapshot anything you might want back *before* deleting.
 
 Always clean up sandboxes you created for a task unless told to keep them.
 

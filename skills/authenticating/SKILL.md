@@ -8,7 +8,7 @@ description: >-
   command returns 401 / unauthenticated, before the first hiloop call in a session, or when setting
   up credentials for an agent.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Authenticating to hiloop
@@ -106,8 +106,8 @@ instruction calling `hiloop tenant switch`, it is stale — delete the call rath
 replacement.
 
 Your work is still tenant-scoped; the scope is simply implied by your credential. `hiloop whoami`
-reports the tenant you resolve to. The one survivor is `hiloop login --tenant-id <id>`, for the
-uncommon case of choosing among memberships at login time.
+reports the tenant you resolve to, and there is no flag anywhere — on `login` or elsewhere — that
+selects a different one.
 
 ## Never
 

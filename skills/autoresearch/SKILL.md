@@ -8,7 +8,7 @@ description: >-
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
 metadata:
-  version: 0.1.4
+  version: 0.1.5
 ---
 
 # Run an autonomous research loop
@@ -253,10 +253,10 @@ uv run tools/fleet-dashboard/dashboard.py \
 
 ## Preview: sandboxed experiment arms
 
-> **Unavailable.** The sandbox runtime is mid-rebuild: no deployment serves `/v1/sandboxes`, so
-> `hiloop sandbox exec` fails outright (see `creating-sandboxes`). This whole section is therefore
-> **not selectable today** — the local path above is the only one that runs. It stays here because
-> the surface returns; re-verify the flags against `--help` when it does.
+> **Unproven at fleet scale.** The `hiloop sandbox` verbs below are served, but this path has not
+> been rehearsed end to end, and it depends on capabilities a deployment may refuse (`sandbox cp`
+> and `ssh` need a session endpoint; `--volume` and `--secret` are refused today). The local path
+> above is the proven default.
 
 **Gate:** do not select this path for a live run until the operator explicitly confirms a full
 staging rehearsal is green. The proven local path above remains the default. To flip after that

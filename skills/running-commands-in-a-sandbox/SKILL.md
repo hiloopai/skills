@@ -9,17 +9,14 @@ description: >-
   Use when asked to run a command, script, build, or test inside a hiloop sandbox, to work in one
   interactively, or to get files in or out.
 metadata:
-  version: 0.7.0
+  version: 0.8.0
 ---
 
 # Running commands in a sandbox
 
-> **Status: the sandbox runtime is mid-rebuild — these commands do not work against a deployment
-> yet.** The verbs below ship with the CLI's next release, and no deployment serves the
-> `/v1/sandboxes` routes yet, so `exec` and `ssh` return a bare `404` (empty body, no error
-> envelope). The surface below is the settled contract they return on. Meanwhile, capture agent work
-> locally with `hiloop run` (`querying-observability-trees`). See `creating-sandboxes` for the full
-> status.
+> **`exec` works anywhere; `ssh` and `cp` need a session plane.** Buffered `exec` rides the served
+> REST surface. The interactive verbs ride a session endpoint an operator enables per deployment —
+> without one the CLI says so and points you at `exec` rather than hanging (see below).
 
 Once a sandbox is **running** (see `creating-sandboxes`), there are exactly two ways to run work in
 it:

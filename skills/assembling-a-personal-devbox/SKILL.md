@@ -8,7 +8,7 @@ description: >-
   virtual machine. Use when asked to set up a devbox, a persistent remote dev environment, or to
   SSH into a sandbox.
 metadata:
-  version: 0.4.0
+  version: 0.5.0
 ---
 
 # Assembling a personal devbox
@@ -140,14 +140,15 @@ State these plainly to the user rather than working around them.
   the first `exec` or `ssh` is still refused, sometimes for around two minutes, while the previous
   instance releases its storage. On a failure right after a start, wait and retry; do not conclude
   the sandbox is broken.
-- **There is no development-shaped default image**, and bringing your own is not a reliable answer
-  yet: a sandbox runs the image's own entrypoint, and an image whose entrypoint exits immediately —
-  true of most base images — fails to materialize rather than idling. An image works here only if it
-  keeps a process running.
-- **`--volume` mounts are refused** with `unsupported_capability`.
-- **`sandbox create --from <snapshot>` is refused**, so you cannot yet rebuild a configured devbox
-  from a snapshot or branch one for an experiment. Taking the snapshot works; starting from it does
-  not.
+- **A sandbox runs the image's own entrypoint**, so an image whose entrypoint exits immediately —
+  true of most base images — needs a long-running command after `--`
+  (`--image ubuntu:24.04 -- sleep infinity`). Omit both source flags and you get the platform default
+  image, which already idles and carries Python, Node, git, and a build toolchain.
+- **`--volume` mounts are refused** with `unsupported_capability`, so shared datasets have to come in
+  over `hiloop sandbox cp`.
+- **`sandbox create --from <snapshot>` needs `--storage-class durable`** — which a devbox has anyway —
+  and a deployment that provides a durable workspace class. Where it does not, taking the snapshot
+  works but starting from it is refused.
 
 If one of these blocks real work, report it: `hiloop feedback "…" --surface sandbox`
 (`reporting-product-bugs`). That is the signal that decides sequencing.
