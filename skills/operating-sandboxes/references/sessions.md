@@ -24,10 +24,9 @@ hiloop sandbox cp ./train.py box:/workspace/train.py
 hiloop sandbox cp -r box:/workspace/out ./out
 ```
 
-`cp` uses managed SFTP and needs nothing installed in the guest. Plain scp/sftp work through the
-same session plane. `rsync` also needs the `rsync` binary inside the image; the platform default
-image does not provide it. For a large repository, clone inside the sandbox instead of copying
-thousands of files one by one.
+`cp` uses managed SFTP and needs nothing installed in the guest. The CLI does not expose reusable
+credentials for invoking plain scp, sftp, or rsync directly. For a large repository, clone inside
+the sandbox instead of copying thousands of files one by one.
 
 For large versioned datasets shared by many sandboxes, use the `managing-volumes` skill, but confirm
 the deployment admits volume mounts before building a workflow around them.

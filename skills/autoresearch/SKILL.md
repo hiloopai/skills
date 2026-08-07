@@ -4,9 +4,9 @@ description: >-
   Run an autonomous, evidence-preserving research loop with hiloop: reuse a project, safely
   register idea and experiment schemas, propose diverse ideas, execute and score bounded arms,
   record evolving idea cards and immutable experiment rows, ensemble winners, and expose the
-  run through the leaderboard, lineage tree, annotations, and fleet dashboard. Use when asked to
-  autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
-  produce a ranked research leaderboard.
+  run through the leaderboard, lineage tree, and annotations. Use when asked to autonomously
+  optimize a metric over a supplied dataset and scorer with hiloop, run a hiloop experiment loop,
+  or produce a ranked hiloop research leaderboard.
 ---
 
 # Run an autonomous research loop
@@ -236,14 +236,4 @@ hiloop annotations list --run "$HILOOP_RUN_ID"
 hiloop runs list --root-run-id "$HILOOP_RUN_ID"
 hiloop query --project "$HILOOP_PROJECT" --sql \
   "SELECT headline, score, outcome FROM ann_hiloop_idea ORDER BY score"
-```
-
-The public dashboard in this repository declares its `rich` dependency inline, so a clone needs
-only `uv` and the `hiloop` CLI:
-
-```sh
-uv run tools/fleet-dashboard/dashboard.py \
-  --project "$HILOOP_PROJECT" \
-  --schema demo.experiment.v1 \
-  --direction lower
 ```

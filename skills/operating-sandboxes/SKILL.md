@@ -3,10 +3,10 @@ name: operating-sandboxes
 description: >-
   Operate hiloop sandboxes through their full lifecycle: create from an image, snapshot, or the
   platform default; inspect, exec, stop, start, and delete; use managed SSH and file transfer when
-  available; snapshot and branch; or compose a persistent development environment. Use for any
-  request to create, launch, inspect, enter, execute in, copy files to or from, snapshot, fork,
+  available; snapshot and branch; or compose a persistent development environment or devbox. Use
+  for any request to create, launch, inspect, enter, execute in, copy files to or from, snapshot, fork,
   stop, restart, or remove a hiloop sandbox. Routes deployment-dependent session, persistence,
-  attachment, capture, and GPU workflows to focused references and treats capability refusals as
+  attachment, and capture workflows to focused references and treats capability refusals as
   final answers.
 ---
 
@@ -20,7 +20,8 @@ deployment; optional capabilities never silently degrade:
 | create/list/get/exec/stop/start/delete | Core |
 | `--storage-class durable`, snapshots, `--from` | Deployment-dependent |
 | `ssh`, `cp`, scp/sftp, port forwarding | Needs the deployment session plane |
-| `--volume`, `--secret`, `--capture on`, nonzero `--gpus` | Refused where no backing transport or capacity exists |
+| `--volume`, `--secret`, `--capture on` | Refused where no backing transport exists |
+| nonzero `--gpus` | Unavailable in sandbox v1; do not request it |
 
 An `unsupported_capability` response is the answer. Do not invent another verb, leak a credential,
 or silently run without requested data or capture.
@@ -38,8 +39,9 @@ An image whose entrypoint exits needs a long-running replacement command after `
 until the sandbox is running or terminal; there is no `--wait` step.
 
 Common flags are `--ttl`, `--storage-class standard|durable`, repeatable `--port`, `--cpus`,
-`--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. Optional `--volume`, `--secret`,
-`--capture`, and `--gpus` are capability requests, not promises.
+`--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. The optional `--volume`, `--secret`,
+and `--capture` flags are capability requests, not promises. The CLI accepts `--gpus` for forward
+compatibility, but sandbox v1 refuses every nonzero request.
 
 ## Inspect and execute
 

@@ -47,7 +47,8 @@ hiloop whoami
 
 …or headless (an agent / CI), skip the browser with a key: `export HILOOP_API_KEY="hil_…"`.
 
-**3. Install the skills.** Choose your harness, or install every supported target:
+**3. Upgrade the CLI, then install the skills.** Choose your harness, or install every supported
+target:
 
 ```sh
 hiloop skills install claude-code  # cursor | codex | gemini | copilot
@@ -57,6 +58,9 @@ hiloop skills install all
 `copilot` installs into the current repository; the other targets install for your user. Full target
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
+
+CLI v0.16.0 still pins an older bundle. Its `--ref v0.5.0` override fetches this content but cannot
+retire removed skill directories; re-run the install after upgrading to a CLI that pins v0.5.0.
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 

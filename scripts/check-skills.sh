@@ -133,13 +133,10 @@ while IFS= read -r c; do
 done < "$work/top"
 in_set() { grep -Fxq -- "$2" "$1"; }   # in_set <file> <value>
 
-# Extract `hiloop <a> [<b>]` usages from fenced code blocks only (skip prose),
-# normalize away backticks/parens, and validate against the derived set.
-# `api` and `run` take freeform args (a REST path / a wrapped command), so we
-# validate only their head, not the next token.
-for f in "${skill_files[@]}"; do
-  rel="skills/$(basename "$(dirname "$f")")/SKILL.md"
-  while IFS=' ' read -r a b; do
+check_commands_in() {   # check_commands_in <file> <label>
+  local f="$1" rel="$2"
+  local grandchildren
+  while IFS=' ' read -r a b c; do
     [ -n "$a" ] || continue
     case "$a" in --*|"") continue;; esac
     if ! in_set "$work/top" "$a"; then
@@ -154,6 +151,14 @@ for f in "${skill_files[@]}"; do
     [[ "$b" =~ ^[a-z][a-z-]*$ ]] || continue
     if ! in_set "$work/pairs" "$a $b"; then
       err "$rel: uses \`hiloop $a $b\` — not a current \`$a\` subcommand"
+      continue
+    fi
+    grandchildren="$(subcommands_of hiloop "$a" "$b")"
+    [ -n "$grandchildren" ] || continue
+    case "$c" in ""|-*|'$'*|'"'*) continue;; esac
+    [[ "$c" =~ ^[a-z][a-z-]*$ ]] || continue
+    if ! grep -Fxq -- "$c" <<<"$grandchildren"; then
+      err "$rel: uses \`hiloop $a $b $c\` — not a current \`$a $b\` subcommand"
     fi
   done < <(awk '
     /^```/ { fence = !fence; next }
@@ -165,10 +170,22 @@ for f in "${skill_files[@]}"; do
       sub(/^[[:space:]]+/, "", line)
       if (line ~ /^hiloop[[:space:]]/) {
         n = split(line, t, /[[:space:]]+/)
-        print t[2], (n >= 3 ? t[3] : "")
+        print t[2], (n >= 3 ? t[3] : ""), (n >= 4 ? t[4] : "")
       }
     }
   ' "$f")
+}
+
+# Extract `hiloop <a> [<b>]` usages from fenced code blocks only (skip prose),
+# normalize away backticks/parens, and validate against the derived set.
+# `api` and `run` take freeform args (a REST path / a wrapped command), so we
+# validate only their head, not the next token.
+for f in "${skill_files[@]}"; do
+  dir="$(basename "$(dirname "$f")")"
+  check_commands_in "$f" "skills/$dir/SKILL.md"
+  for r in "$skills_dir/$dir"/references/*.md; do
+    check_commands_in "$r" "skills/$dir/references/$(basename "$r")"
+  done
 done
 
 # --- Layer 3: CLI flag existence ---------------------------------------------
@@ -242,7 +259,18 @@ check_flags_in() {   # check_flags_in <file> <label>
         n = split(line, part, "`")
         for (i = 2; i <= n; i += 2) out = out part[i] "\n"
         line = out
+      } else {
+        sub(/^[[:space:]]+/, "", line)
+        if (continued != "") line = continued " " line
+        if (line ~ /\\[[:space:]]*$/) {
+          sub(/[[:space:]]*\\[[:space:]]*$/, "", line)
+          continued = line
+          next
+        }
+        continued = ""
       }
+      gsub(/"[^"]*"/, "", line)
+      gsub(/\047[^\047]*\047/, "", line)
       gsub(/[`()]/, " ", line)
       sub(/^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=/, "", line)
       m = split(line, cand, "\n")

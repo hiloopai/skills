@@ -12,7 +12,7 @@ self-contained; read the one that matches the task.
 ## The interface: the `hiloop` CLI
 
 > **Core sandbox lifecycle and buffered exec are served.** Optional storage, snapshot, session,
-> volume, secret, capture, and GPU capabilities are admitted only when the deployment provides
+> volume, secret, and capture capabilities are admitted only when the deployment provides
 > them; refusals are explicit and never silently degraded. The `operating-sandboxes` skill carries
 > the current capability table and the conditional workflows.
 
@@ -32,8 +32,11 @@ hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [-
 Install (single static binary): `curl -fsSL https://hiloop.ai/install.sh | sh`, then `hiloop --version`.
 An older installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
 `port-forward`, `ssh-config`, `devbox`, `lease`, `tenant`) that no longer exist and that no
-deployment serves. Upgrade with `hiloop upgrade` rather than reaching for them, and re-install the
-skills (`hiloop skills install`) so the guidance matches the binary.
+deployment serves. Upgrade with `hiloop upgrade` rather than reaching for them, then re-install the
+skills for the harness you use (`hiloop skills install <harness>`). CLI v0.16.0 still pins an older
+bundle; `--ref v0.5.0` fetches this one but does not retire removed skill directories. Re-run the
+install after upgrading to a CLI that reports v0.5.0 as its pinned skills reference so the migration
+also cleans those directories up.
 
 There is no MCP server by design — a CLI the agent already knows how to drive costs far less context
 than loading tool definitions every turn. The TypeScript (`@hiloopai/sdk`) and Python (`hiloop`) SDKs
