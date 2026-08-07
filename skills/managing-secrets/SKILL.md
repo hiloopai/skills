@@ -7,8 +7,6 @@ description: >-
   with `hiloop run --secret`, which works today, plus why sandbox-side bindings do not yet. Use when
   an agent needs to call an authenticated external API without the key landing in the agent's
   context, on disk, or in the environment.
-metadata:
-  version: 0.5.0
 ---
 
 # Managing secrets

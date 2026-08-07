@@ -11,12 +11,10 @@ self-contained; read the one that matches the task.
 
 ## The interface: the `hiloop` CLI
 
-> **Some sandbox capabilities are still refused.** The `hiloop sandbox` and `hiloop volume` verbs
-> are served, but `--volume`, `--secret`, `--capture on`, and a nonzero `--gpus` are refused with an
-> explicit `unsupported_capability` rather than silently degraded; `--storage-class durable` (and so
-> `create --from <snapshot>`, which forks into a durable workspace) and `sandbox ssh` / `cp` depend
-> on what the deployment provides. `hiloop devbox` was deleted outright — assemble a devbox from the
-> plain sandbox verbs. Each sandbox skill says where it stands at the top.
+> **Core sandbox lifecycle and buffered exec are served.** Optional storage, snapshot, session,
+> volume, secret, capture, and GPU capabilities are admitted only when the deployment provides
+> them; refusals are explicit and never silently degraded. The `operating-sandboxes` skill carries
+> the current capability table and the conditional workflows.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / cp / snapshot /
@@ -74,11 +72,8 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 |---|---|
 | `autoresearch` | Run a metric-driven research loop: ideas, bounded arms, honest annotations, ensemble, leaderboard |
 | `authenticating` | Point the CLI at a deployment, sign in with `hiloop login` (or a key), verify identity, mint keys |
-| `creating-sandboxes` | Create / inspect / stop / start / delete sandboxes; images and snapshots, storage, ports, TTL |
-| `running-commands-in-a-sandbox` | Run commands (buffered `exec`, interactive SSH); move files in and out |
-| `snapshotting-and-forking` | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
+| `operating-sandboxes` | Create, inspect, exec, stop, start, and delete sandboxes; load SSH, file-transfer, snapshot, branch, or devbox details only when needed |
 | `managing-volumes` | Publish and version large data once, mount it into many sandboxes |
-| `assembling-a-personal-devbox` | Keep one sandbox as a long-lived dev environment: durable `/workspace`, managed SSH, stop/start |
 | `managing-secrets` | Give a run a credential it uses but never sees (the secret broker) |
 | `launching-as-workloads` | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
@@ -89,15 +84,10 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 
 ```
 configure the edge → login (or HILOOP_API_KEY) → whoami → create project →
-[volume create + push, once per dataset] →
-create sandbox (--image, --volume <name>:/data) → exec commands →
-snapshot create → create N sandboxes --from that snapshot →
-run divergent work (credentials via hiloop run --secret) → annotate outcomes →
-query per lineage_path / diff two runs → delete sandboxes
+create sandbox → exec commands → [snapshot + branch when the deployment supports it] →
+run credentialed local work with hiloop run --secret → annotate outcomes →
+query the runs → delete sandboxes
 ```
-
-The `--volume` and `--secret` attachments in that loop are the steps a deployment still refuses (see
-the status note above); the rest executes.
 
 ## Secrets
 

@@ -8,8 +8,6 @@ description: >-
   when a hiloop command errors or misbehaves, an API response contradicts its documentation, a
   surface renders wrong, or you have a product suggestion — never for reporting your own task's
   results.
-metadata:
-  version: 0.1.1
 ---
 
 # Reporting product bugs

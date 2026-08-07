@@ -7,8 +7,6 @@ description: >-
   run through the leaderboard, lineage tree, annotations, and fleet dashboard. Use when asked to
   autonomously optimize a metric over a supplied dataset and scorer, run an experiment loop, or
   produce a ranked research leaderboard.
-metadata:
-  version: 0.1.5
 ---
 
 # Run an autonomous research loop
@@ -16,9 +14,8 @@ metadata:
 Own the loop from idea to evidence. Do not ask the user to choose ideas or copy results between
 steps. The user watches; you propose, execute, annotate, compare, and summarize.
 
-The proven path executes arms in the local directory inside one captured `hiloop run`. A sandboxed
-arm path is documented at the end, but is a preview until the operator explicitly says its full
-staging rehearsal is green. Never silently switch between them.
+Execute arms in the local directory inside one captured `hiloop run`. Do not move this loop into
+sandboxes: the required fleet path has not passed an end-to-end rehearsal.
 
 ## Non-negotiable research rules
 
@@ -250,50 +247,3 @@ uv run tools/fleet-dashboard/dashboard.py \
   --schema demo.experiment.v1 \
   --direction lower
 ```
-
-## Preview: sandboxed experiment arms
-
-> **Unproven at fleet scale.** The `hiloop sandbox` verbs below are served, but this path has not
-> been rehearsed end to end, and it depends on capabilities a deployment may refuse (`sandbox cp`
-> and `ssh` need a session endpoint; `--volume` and `--secret` are refused today). The local path
-> above is the proven default.
-
-**Gate:** do not select this path for a live run until the operator explicitly confirms a full
-staging rehearsal is green. The proven local path above remains the default. To flip after that
-confirmation, set `HILOOP_AUTORESEARCH_FLEET` to a comma-separated prepared fleet and
-`HILOOP_AUTORESEARCH_ROOT=/tmp/autoresearch`.
-
-The local orchestrator still owns model calls and annotations. Model credentials and the hiloop API
-key stay on the host. Sandboxes receive only the fixed task inputs, scorer, dependencies, candidate
-script, and prediction bytes.
-
-Mechanically stage the fixed files into every prepared member without inspecting their contents.
-`hiloop sandbox cp` moves them directly, so no encoding step is needed:
-
-```sh
-hiloop sandbox exec "$sandbox" --timeout 60 -- mkdir -p "$HILOOP_AUTORESEARCH_ROOT"
-for f in TASK.md data.py score.py; do
-  hiloop sandbox cp "$f" "$sandbox:$HILOOP_AUTORESEARCH_ROOT/$f"
-done
-```
-
-Run arms strict round-robin. Encode only the candidate script, execute with a stable idempotency
-key, and read the scorer line from stdout:
-
-```sh
-script_b64="$(base64 < experiment.py | tr -d '\n\r')"
-output="$(hiloop sandbox exec "$sandbox" --timeout 90 \
-  --idempotency-key "autoresearch-$HILOOP_RUN_ID-$experiment_id" -- /bin/sh -c \
-  "printf '%s' '$script_b64' | base64 -d > '$HILOOP_AUTORESEARCH_ROOT/experiment.py'; \
-   cd '$HILOOP_AUTORESEARCH_ROOT'; \
-   '$HILOOP_AUTORESEARCH_ROOT/.venv/bin/python' experiment.py")"
-printf '%s\n' "$output"
-```
-
-Each arm must emit one `HILOOP_METRIC` line and a base64-encoded NumPy prediction artifact. Decode
-predictions on the host for winner selection. Send the selected prediction files to the next
-sandbox by the same base64-over-exec mechanism; average and score the ensemble inside that sandbox.
-Write all annotations from the authenticated local orchestrator against `HILOOP_RUN_ID`.
-
-On any sandbox transport failure, retry once with the same idempotency key. Then record the honest
-failure and continue. Never fall back to local execution while labeling the result sandboxed.

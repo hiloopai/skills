@@ -2,7 +2,7 @@
 name: launching-as-workloads
 description: >-
   Launch hiloop runs as a workload — a named machine identity registered in your tenant — with
-  `--as workload/<name>` on `hiloop run` (currently the only verb that takes it). Covers
+  `--as workload/NAME` on `hiloop run` (currently the only verb that takes it). Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
   every tenant member or restrict it to kinded principals — users by id and/or service-account
@@ -11,8 +11,6 @@ description: >-
   only the raw id). Use when work should be attributed to a service identity — a bot, a
   pipeline, a fleet role — rather than to whichever credential launched it, or when asked to
   control who may launch as one.
-metadata:
-  version: 0.6.0
 ---
 
 # Launching as workloads

@@ -4,11 +4,9 @@
 > snapshot and branch, with tree-native observability. The skills drive hiloop through the `hiloop`
 > CLI and follow the open Agent Skills standard, so they work across harnesses.
 >
-> Status: the `hiloop sandbox` and `hiloop volume` verbs are served. `--volume`, `--secret`,
-> `--capture on`, and a nonzero `--gpus` are still refused with `unsupported_capability`;
-> `--storage-class durable` (and so `create --from`) and `sandbox ssh` / `cp` depend on what the
-> deployment provides. `hiloop devbox` was deleted; a devbox is assembled from the plain sandbox
-> verbs.
+> Status: core sandbox lifecycle and buffered exec are served. Optional capabilities are
+> deployment-dependent and refuse explicitly when absent; `operating-sandboxes` carries the
+> current capability table.
 
 ## Start here
 
@@ -16,13 +14,10 @@
 
 ## Skills
 
-- [autoresearch](skills/autoresearch/SKILL.md): run a complete metric-driven research loop — propose diverse ideas, execute bounded arms, record evolving idea cards and immutable scored experiments, ensemble winners, and expose a leaderboard; includes a gated sandboxed-arms preview.
+- [autoresearch](skills/autoresearch/SKILL.md): run a complete local metric-driven research loop — propose diverse ideas, execute bounded arms, record evolving idea cards and immutable scored experiments, ensemble winners, and expose a leaderboard.
 - [authenticating](skills/authenticating/SKILL.md): point the CLI at a deployment (the built-in default edge is not live), sign in with hiloop login (default) or HILOOP_API_KEY (headless/CI), whoami, key management; tenants are implied by the credential — there is no tenant command.
-- [creating-sandboxes](skills/creating-sandboxes/SKILL.md): the nine-verb `hiloop sandbox` surface — create (positional name, at most one of --image / --from and otherwise the platform default image, --cpus, --memory-mb, --gpus, --ttl, --storage-class, --port, --volume, --secret, --capture, --metadata, --idempotency-key; blocks until running, no --wait), list/get filters, stop/start/delete, and the retired flags and verbs not to reach for.
-- [running-commands-in-a-sandbox](skills/running-commands-in-a-sandbox/SKILL.md): buffered `hiloop sandbox exec` (--timeout 1-3600, output truncation warning, exit codes, idempotency keys), interactive `hiloop sandbox ssh` (stock OpenSSH flags after --, including -L port forwarding), and moving files with `hiloop sandbox cp` (either direction, -r for trees), volumes, scp/sftp (rsync needs its own binary in the image), and files read back through exec.
-- [snapshotting-and-forking](skills/snapshotting-and-forking/SKILL.md): `hiloop sandbox snapshot create` (--name, --wait-remote, local vs replicated durability) / list (lineage edges) / delete, and `hiloop sandbox create --from <snapshot> --storage-class durable` as the single restore-fork-branch verb; N concurrent creates from one snapshot are the fan-out primitive; disk not memory in v1.
+- [operating-sandboxes](skills/operating-sandboxes/SKILL.md): create/list/get/exec/stop/start/delete, the deployment capability table, and conditional references for managed SSH/file transfer, snapshots/branching, and persistent dev environments.
 - [managing-volumes](skills/managing-volumes/SKILL.md): `hiloop volume create` (--size-gb quota) / push (content-addressed, deduplicated, never half-published) / list / get / delete, and mounting with `sandbox create --volume <name>:/abs/path` — name resolved client-side, version pinned at admission.
-- [assembling-a-personal-devbox](skills/assembling-a-personal-devbox/SKILL.md): keep one sandbox as a long-lived dev environment built from the plain `hiloop sandbox` verbs (`--storage-class durable`, `ssh`, `exec`, `stop`/`start`) — there is no `hiloop devbox` command; getting code in and out with `hiloop sandbox cp` (and scp/sftp) through managed SSH; where state belongs; and the limits that make it unlike a VM.
 - [managing-secrets](skills/managing-secrets/SKILL.md): hiloop secret set/list/rotate/revoke + hiloop run --secret (works today); a write-only credential a run uses but never sees; sandbox-side bindings (`sandbox create --secret`) fail closed, refused with unsupported_capability.
 - [launching-as-workloads](skills/launching-as-workloads/SKILL.md): hiloop workloads create/list/show/delete/allow-launch + `--as workload/<name>` on hiloop run (currently the only verb that takes it) — named machine identities with kinded launch ACLs (restrict to users by id and/or service-account keys via allow-launch --user/--service-account); registration is explicit, launching as an unregistered name fails closed (not_found), and delete is owner/admin-only with a confirmation prompt (`--yes` to skip; live sandboxes conflict, past attribution keeps only the raw id).
 - [querying-observability-trees](skills/querying-observability-trees/SKILL.md): capture a run with hiloop run (--net-capture modes, --no-otlp, --label), orient with runs list/show/tail/complete (scope a tree with runs list --root-run-id), query with read-only SQL (hiloop query) over the events table + views, root_run_id and lineage_path scoping, runs tail, events payload, run diffs by anti-join.
@@ -33,6 +28,9 @@
 
 - [fleet dashboard](tools/fleet-dashboard/README.md): public Rich terminal dashboard for runs, lineage, experiment leaderboard, and recent events.
 - [events SQL reference](skills/querying-observability-trees/references/events-sql.md): the read-only SQL query surface — the events table columns, query rules, example SELECTs.
+- [sandbox session reference](skills/operating-sandboxes/references/sessions.md): managed SSH, port forwarding, and file transfer.
+- [sandbox snapshot reference](skills/operating-sandboxes/references/snapshots.md): snapshot durability and branching with `create --from`.
+- [persistent sandbox reference](skills/operating-sandboxes/references/devbox.md): compose a long-lived development environment from ordinary sandbox verbs.
 
 ## More
 

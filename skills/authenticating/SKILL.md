@@ -7,8 +7,6 @@ description: >-
   and pointing the CLI at a deployment (the hosted default edge is not live). Use this when a hiloop
   command returns 401 / unauthenticated, before the first hiloop call in a session, or when setting
   up credentials for an agent.
-metadata:
-  version: 0.5.0
 ---
 
 # Authenticating to hiloop

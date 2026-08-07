@@ -9,8 +9,6 @@ description: >-
   raw payload bytes with `hiloop events payload`, and diffing two runs. Use when asked to capture /
   observe / trace an agent run, query telemetry or LLM calls, compute token metrics, scope to a
   branch, follow a run live, or compare what two runs did.
-metadata:
-  version: 0.9.0
 ---
 
 # Querying observability trees
@@ -53,7 +51,7 @@ samples every 15s; `--egress-deny --allow-domain <domain>` runs the command unde
 egress policy.
 
 `hiloop run` on your own machine is the capture lane that works today. (`sandbox create --capture on`
-is refused with `unsupported_capability` — see `creating-sandboxes` — and there is no
+is refused with `unsupported_capability` — see `operating-sandboxes` — and there is no
 `hiloop sandbox run` verb any more.)
 
 ## 2. Orient: list, scope to a tree, transcript

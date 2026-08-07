@@ -4,11 +4,9 @@ description: >-
   Publish and mount large data — datasets, model caches, checkpoints — as hiloop volumes: named,
   versioned references that sandboxes mount instead of copying bytes in. Covers `hiloop volume
   create` / `push` (content-addressed, deduplicated, never half-published) / `list` / `get` /
-  `delete`, and attaching one at sandbox create with `--volume <name>:/abs/path`, version pinned at
+  `delete`, and attaching one at sandbox create with `--volume NAME:/abs/path`, version pinned at
   admission. Use when many sandboxes share the same input data, when data is too large to move
   through a command's output, or when asked to publish, version, or mount a dataset.
-metadata:
-  version: 0.4.0
 ---
 
 # Managing volumes
@@ -26,7 +24,7 @@ immutable version; content is stored once, deduplicated by digest, and shared ac
 The surface is exactly five verbs plus one create-time flag. **There is no `hiloop volume
 prefetch`** — the node-cache pre-warm verb was removed; do not reach for it. Volumes are for bulk,
 versioned data many sandboxes share; to get files into one running sandbox, use `hiloop sandbox cp`
-(`running-commands-in-a-sandbox`).
+(`operating-sandboxes`).
 
 > Authenticate first (the `authenticating` skill) and pick a project — a volume lives in a project
 > and its name is unique within it.
