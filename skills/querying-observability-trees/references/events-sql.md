@@ -39,8 +39,7 @@ Every query runs through a gateway that:
   did: `llm` (model-provider HTTP exchanges), `net` (every other HTTP exchange), `log` (stdout/
   stderr and OTLP logs), `exec` (command lifecycle: what ran, exit code, duration), `metric`
   (resource samples). Platform signals flow regardless of capture: `runtime` (sandbox state
-  transitions, operation lifecycle, queue latency), `egress` (network policy decisions), `lease`
-  (coordination-lease transitions). And `annotation` is knowledge you write.
+  transitions, operation lifecycle, queue latency). And `annotation` is knowledge you write.
 - `name` — operation/event name (e.g. `http.request`, `process.start`, `process.stdout`).
 - `attributes_json` — signal-specific fields as a JSON string (the catch-all; wide — keep it last or
   out of table output).

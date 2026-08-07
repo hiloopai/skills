@@ -1,13 +1,16 @@
 # Setup per harness
 
 These skills follow the [Agent Skills open standard](https://agentskills.io) — a directory of
-`skills/<name>/SKILL.md` files plus a root [`AGENTS.md`](AGENTS.md). Install the verified bundle for
-your harness with the hiloop CLI:
+`skills/<name>/SKILL.md` files plus a root [`AGENTS.md`](AGENTS.md). Upgrade the hiloop CLI, then
+install the verified bundle for your harness:
 
 ```sh
 hiloop skills install claude-code  # cursor | codex | gemini | copilot
 hiloop skills install all
 ```
+
+CLI v0.16.0 still pins an older bundle. Its `--ref v0.5.0` override fetches this content but cannot
+retire removed skill directories; re-run the install after upgrading to a CLI that pins v0.5.0.
 
 Claude Code, Cursor, Codex, and Gemini installs are user-wide. Copilot installs into
 `.github/skills/` in the current repository. Re-run the same command to refresh an installation.

@@ -14,12 +14,9 @@ definitions every turn.
 | Skill | Use it to |
 |---|---|
 | [`autoresearch`](skills/autoresearch/SKILL.md) | Run an autonomous research loop with evolving idea cards, scored experiments, an ensemble, and a leaderboard |
-| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, manage tenant scope and keys |
-| [`creating-sandboxes`](skills/creating-sandboxes/SKILL.md) | Create / inspect / stop / start / delete sandboxes; boot from an image or a snapshot |
-| [`running-commands-in-a-sandbox`](skills/running-commands-in-a-sandbox/SKILL.md) | Run commands (buffered `exec` or over SSH); move files in and out |
-| [`snapshotting-and-forking`](skills/snapshotting-and-forking/SKILL.md) | Snapshot a sandbox and branch N sandboxes from it with `create --from` |
+| [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, mint and revoke keys |
+| [`operating-sandboxes`](skills/operating-sandboxes/SKILL.md) | Create, inspect, exec, stop, start, and delete sandboxes; follow conditional references for sessions, snapshots, and devboxes |
 | [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish and version large data once, mount it into many sandboxes |
-| [`assembling-a-personal-devbox`](skills/assembling-a-personal-devbox/SKILL.md) | Keep one sandbox as a long-lived dev environment: durable `/workspace`, managed SSH, stop/start |
 | [`managing-secrets`](skills/managing-secrets/SKILL.md) | Give a run a credential it uses but never sees (the secret broker) |
 | [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
@@ -50,7 +47,8 @@ hiloop whoami
 
 …or headless (an agent / CI), skip the browser with a key: `export HILOOP_API_KEY="hil_…"`.
 
-**3. Install the skills.** Choose your harness, or install every supported target:
+**3. Upgrade the CLI, then install the skills.** Choose your harness, or install every supported
+target:
 
 ```sh
 hiloop skills install claude-code  # cursor | codex | gemini | copilot
@@ -61,13 +59,14 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
+CLI v0.16.0 still pins an older bundle. Its `--ref v0.5.0` override fetches this content but cannot
+retire removed skill directories; re-run the install after upgrading to a CLI that pins v0.5.0.
+
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 
-> **Sandbox status.** The `hiloop sandbox` and `hiloop volume` verbs are served. Some capabilities
-> are still refused with an explicit `unsupported_capability` rather than silently degraded:
-> `create --from <snapshot>`, `--volume`, `--secret`, and `--capture`. `sandbox ssh` needs an
-> endpoint an operator enables per deployment. `hiloop devbox` was deleted; a devbox is assembled
-> from the plain sandbox verbs. Each sandbox skill says where it stands up front.
+> **Sandbox status.** Core lifecycle and buffered exec are served. Optional capabilities are
+> deployment-dependent and refuse explicitly when absent; see the capability table in
+> [`operating-sandboxes`](skills/operating-sandboxes/SKILL.md).
 
 For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
 [`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public

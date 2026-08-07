@@ -7,8 +7,6 @@ description: >-
   with `hiloop run --secret`, which works today, plus why sandbox-side bindings do not yet. Use when
   an agent needs to call an authenticated external API without the key landing in the agent's
   context, on disk, or in the environment.
-metadata:
-  version: 0.4.0
 ---
 
 # Managing secrets
@@ -60,17 +58,14 @@ run fails before the child starts rather than running unauthenticated or leaking
 
 ## Sandbox bindings do not work yet
 
-`hiloop sandbox create --secret <name>` requests the same binding for a sandbox. **It does not work
-today**, for two stacked reasons, and it is worth knowing which is which:
+`hiloop sandbox create --secret <name>` requests the same binding for a sandbox. The flag is
+accepted, and the create is then **refused at admission** with `unsupported_capability`: in-sandbox
+delivery is still being respecified, and the design principle is unchanged and non-negotiable — a
+credential is never placed in guest environment, argv, images, logs, or telemetry, so delivery
+**fails closed** rather than degrading. A sandbox is never silently created without the credential it
+asked for.
 
-1. **The sandbox runtime is being rebuilt** — the API edge does not serve `/v1/sandboxes` at all, so
-   the create fails before secrets are even considered (see `creating-sandboxes`).
-2. **In-sandbox secret delivery is itself being respecified.** The design principle is unchanged and
-   non-negotiable: a credential is never placed in guest environment, argv, images, logs, or
-   telemetry, so delivery **fails closed** rather than degrading. A sandbox is never silently
-   created without the credential it asked for.
-
-There is no flag that overrides either. Do not wait for a workaround — there isn't one.
+There is no flag that overrides that. Do not wait for a workaround — there isn't one.
 
 Do not work around this by placing a key in a sandbox's environment, image, command line, or on its
 disk — those paths expose plaintext to the agent and to process-inspection and logging surfaces, and
