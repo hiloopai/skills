@@ -59,8 +59,7 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-CLI v0.17.1 pins bundle v0.5.0. Until CLI v0.18.0 is released, pass `--ref v0.6.0` to install
-the managed sandbox-capture guidance.
+CLI v0.18.0 pins bundle v0.6.0.
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 

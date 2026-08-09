@@ -54,7 +54,7 @@ The same interceptor backs managed sandbox capture. There is no `hiloop sandbox 
 
 ## Sandbox ambient runs
 
-CLI v0.17.0 returns an ambient run with every successful create:
+CLI v0.18.0 returns an ambient run with every successful create:
 
 ```sh
 receipt="$(hiloop sandbox create demo --output json -- sleep infinity)"
