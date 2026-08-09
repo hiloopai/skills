@@ -44,7 +44,7 @@ MAX_LINES=500
 # now tenant-defined — promote the fields you query; there are no built-in value columns).
 # Also banned: the runtime-rebuild status vocabulary. Those routes are served; a
 # capability a deployment refuses is described as a refusal, never as an absent route.
-BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release'
+BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release|hiloop run --secret|--value([[:space:]>]|$)'
 
 # --- Layer 1: structure -------------------------------------------------------
 

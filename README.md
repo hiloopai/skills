@@ -17,7 +17,7 @@ definitions every turn.
 | [`authenticating`](skills/authenticating/SKILL.md) | Sign in with `hiloop login` (or a key), verify identity, mint and revoke keys |
 | [`operating-sandboxes`](skills/operating-sandboxes/SKILL.md) | Create, inspect, exec, stop, start, and delete sandboxes; follow conditional references for sessions, snapshots, and devboxes |
 | [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish and version large data once, mount it into many sandboxes |
-| [`managing-secrets`](skills/managing-secrets/SKILL.md) | Broker a hidden run credential, or handle a deliberately exposed sandbox key safely |
+| [`managing-secrets`](skills/managing-secrets/SKILL.md) | Manage write-only credentials; delivery remains fail-closed until the proof-bound gateway ships |
 | [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch a run as a registered machine identity (a workload) and control who may launch as it |
 | [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
 | [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
@@ -59,7 +59,7 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-CLI v0.18.0 pins bundle v0.6.2.
+The CLI pins a verified bundle release.
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 

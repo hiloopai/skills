@@ -1,107 +1,70 @@
 ---
 name: managing-secrets
 description: >-
-  Give a hiloop run a credential it can use but never see — a model-provider key, a third-party API
-  token — via the secret broker. Covers `hiloop secret set` / `list` / `rotate` / `revoke`
-  (write-only values bound to a destination host + header) and binding a secret into a captured run
-  with `hiloop run --secret`, which works today; explains why sandbox-side bindings fail closed and
-  how a customer may deliberately inject an exposed credential while preferring safer alternatives.
-  Use when an agent needs to call an authenticated external API or configure model-provider access.
+  Manage a third-party credential in hiloop's write-only secret store. Covers `hiloop secret set` /
+  `list` / `rotate` / `revoke`, piped-stdin-only values, destination metadata, the absence of local
+  run delivery, and why `hiloop sandbox create --secret NAME` fails closed until proof-bound
+  request-time delivery ships. Use when an agent needs to register, inspect, rotate, revoke, or plan
+  delivery of a model-provider key or external API token without exposing its value.
 ---
 
 # Managing secrets
 
-An agent often needs a credential — an Anthropic/OpenAI key, a third-party API token — to do real
+An agent often needs a credential — an OpenAI key, a third-party API token — to do real
 work. You do **not** want that key in the agent's context, in an env var the agent can echo, or on
-disk where every process can read it. hiloop solves this with a **secret broker**: you store the
-value write-only and bind it to a destination; at request time the value is injected into the
-matching outbound request in flight, so the agent uses the credential without ever seeing it.
+disk where every process can read it. hiloop currently provides write-only encrypted custody and
+lifecycle management. It does **not** currently deliver a stored value to a local run or sandbox.
 
 > Tenant-scoped. Authenticate first (the `authenticating` skill). Values are stored encrypted and
 > never returned.
 
 ## Store a secret (write-only)
 
-The value is **write-only** — supplied once, never echoed back. Prefer stdin so it stays out of
-your shell history and the process list. Bind it to the host and header it should be injected
-into:
+The value is **write-only** — supplied once, never echoed back. Piped stdin is the only value
+channel, keeping it out of hiloop's argv and your shell history:
 
 ```sh
-echo "$ANTHROPIC_API_KEY" | hiloop secret set anthropic \
+printf '%s' "$OPENAI_API_KEY" | hiloop secret set openai \
   --value-stdin \
   --kind bearer \
-  --dest-host api.anthropic.com
+  --dest-host api.openai.com
 ```
 
-- `--value-stdin` (preferred) reads one line from stdin; `--value <v>` passes it inline (lands in
-  shell history — avoid).
-- `--kind` shapes injection: `api-key` (default), `bearer`, `basic`, `custom`. `--dest-header` and
-  `--scheme` default sensibly by kind (a `bearer` token → `authorization: Bearer …`), so you can
-  usually omit them.
-- `--dest-host` is the outbound host the value is injected into. Only requests to that host get it.
+- `--value-stdin` requires non-terminal stdin containing exactly one non-empty line of at most 4096
+  bytes. One final LF or CRLF is removed; other whitespace is preserved.
+- `--kind`, `--dest-host`, `--dest-header`, and `--scheme` are stored metadata today. They do not
+  authorize or inject a request yet.
+- Use `bearer` plus the exact intended public HTTPS host for the planned first delivery slice. That
+  slice will overwrite `Authorization: Bearer <value>` only after a live proof-bound request is
+  authorized outside the sandbox.
 
-## Use it in a captured run
+## Delivery is fail-closed today
 
-Bind a stored secret into a `hiloop run` by name; the wrapper resolves it from the broker on demand
-and injects it into the matching outbound request per the stored destination binding. The value is
-never written to disk, the environment, or the workspace:
+Local `hiloop run` has no secret-binding option. Storing destination metadata does not make a local
+run credentialed.
 
-```sh
-hiloop run --secret anthropic -- claude -p "do the task"
-```
-
-`--secret` is repeatable — bind several. The wrapped agent just calls
-`https://api.anthropic.com/…` with no key; the credential is added in flight. Secret bindings
-require the transparent (netns) network-capture mode — on a host where its preflight fails, the
-run fails before the child starts rather than running unauthenticated or leaking the value
-(see `querying-observability-trees` for `--net-capture`).
-
-## Sandbox bindings do not work yet
-
-`hiloop sandbox create --secret <name>` requests the same binding for a sandbox. The flag is
-accepted, and the create is then **refused at admission** with `unsupported_capability`: in-sandbox
-delivery is still being respecified, and the design principle is unchanged and non-negotiable — a
-credential is never placed in guest environment, argv, images, logs, or telemetry, so delivery
-**fails closed** rather than degrading. A sandbox is never silently created without the credential it
-asked for.
-
-There is no flag that turns this into a brokered sandbox binding. An in-sandbox
-`hiloop run --secret` is also refused: it joins the ambient capture session, whose network boundary
-is already owned, and cannot add a per-command enforceable binding.
-
-The customer controls the sandbox and may deliberately supply a raw provider key or use the tool's
-own login. Prefer the provider login, a restricted short-lived key, or host-side `hiloop run
---secret`. For a temporary sandbox key, pipe it through SSH stdin into a mode-0600 file, then expose
-it only to the process that needs it:
-
-```sh
-printf '%s' "$OPENAI_API_KEY" | hiloop sandbox ssh box -- \
-  'umask 077; cat > /tmp/openai-key'
-hiloop sandbox exec box -- sh -lc \
-  'CODEX_API_KEY="$(cat /tmp/openai-key)" exec codex exec "do the task"'
-```
-
-This is supported customer-controlled injection, not secret isolation. Anything inside the sandbox
-can read the file or process environment. Remove it and revoke the key after use. Never bake a key
-into an image or durable workspace: it then survives stops and is copied by snapshots/forks.
+`hiloop sandbox create --secret <name>` accepts a name-only binding request, but admission refuses
+it with `unsupported_capability` until proof-bound request-time delivery is deployed. The sandbox is
+never silently created without the requested credential, and there is no fallback that places a raw
+provider key in guest environment, argv, exec input, files, images, snapshots, or workspaces.
 
 ## Manage the lifecycle
 
 ```sh
 hiloop secret list                       # metadata only — name, kind, destination; never the value
-echo "$NEW_KEY" | hiloop secret rotate anthropic --value-stdin   # new value, stored as a new version
-hiloop secret revoke anthropic           # a revoked secret resolves to nothing
+printf '%s' "$NEW_KEY" | hiloop secret rotate openai --value-stdin
+hiloop secret revoke openai              # a revoked secret resolves to nothing
 ```
 
 `rotate` takes `--idempotency-key <key>` for safe retries: the same key and value returns the
-original rotation instead of minting another version.
+original rotation instead of minting another version; reusing the key with a different value is
+rejected.
 
 ## Never
 
-- Print, log, echo, or commit a secret value, or pass it where it lands in shell history (prefer
-  `--value-stdin` over `--value`).
-- Bake a credential into a sandbox image or durable workspace. If a customer chooses temporary raw
-  injection, keep it ephemeral, narrowly scoped, and explicitly exposed.
+- Print, log, echo, or commit a secret value. Pipe it only through `--value-stdin`.
+- Put a provider credential in a sandbox environment, exec request, file, image, snapshot, or
+  durable workspace. A refused binding is the final answer until proof-bound delivery ships.
 - Confuse this with your **hiloop** credential. `HILOOP_API_KEY` / `hiloop login` authenticate
   *you* to hiloop (the `authenticating` skill); a **secret** is a *third-party* credential your
   workload uses.
