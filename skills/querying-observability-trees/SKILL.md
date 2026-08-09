@@ -50,23 +50,31 @@ event (nothing unlisted is ever captured); `--sample-resources` records process-
 samples every 15s; `--egress-deny --allow-domain <domain>` runs the command under a deny-by-default
 egress policy.
 
-`hiloop run` on your own machine is the capture lane that works today. There is no
-`hiloop sandbox run` verb.
+The same interceptor backs managed sandbox capture. There is no `hiloop sandbox run` verb.
 
-## Sandbox ambient runs: identity before producers
+## Sandbox ambient runs
 
 CLI v0.17.0 returns an ambient run with every successful create:
 
 ```sh
 receipt="$(hiloop sandbox create demo --output json -- sleep infinity)"
-sandbox_id="$(printf '%s' "$receipt" | jq -r '.sandbox.id')"
+sandbox_id="$(printf '%s' "$receipt" | jq -r '.id')"
 run_id="$(printf '%s' "$receipt" | jq -r '.run_id')"
 ```
 
-The proof-bound server authority exists, but no runtime capture producer is attached yet. A normal
-entrypoint, `sandbox exec`, or SSH command followed by `hiloop query --run-id "$run_id"` therefore
-returns zero events. Do not claim sandbox capture from the presence of `run_id` alone. An explicit
-in-guest `hiloop run --` creates a separate run and is not the trusted ambient path.
+Read the sandbox id from `.id`, not `.sandbox.id`; the converged sandbox object is the top-level JSON
+value. The managed capture session writes an explicit create command, buffered exec, SSH output,
+cooperative HTTP, and OTLP signals to this server-bound run. PTY keystrokes/input and clients that
+bypass the proxy are not captured. An implicit image entrypoint has proxy/OTLP capture but no
+process/stdio supervision.
+
+Inside a sandbox, `hiloop run -- <command>` joins the same ambient run without registering another
+run or needing a Hiloop credential. Query it exactly like a local run:
+
+```sh
+hiloop sandbox exec demo -- sh -lc 'printf "hello from sandbox\n"'
+hiloop query --run-id "$run_id" --signal log
+```
 
 ## 2. Orient: list, scope to a tree, transcript
 
