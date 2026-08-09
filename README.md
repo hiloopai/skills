@@ -59,7 +59,7 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-CLI v0.18.0 pins bundle v0.6.0.
+CLI v0.18.0 pins bundle v0.6.1.
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 
