@@ -15,6 +15,10 @@ Arguments after `--` are stock OpenSSH arguments or the remote command. SSH auto
 sandbox. If the deployment has no session endpoint, use `sandbox exec`; do not poll or construct a
 private endpoint.
 
+A non-PTY remote command records process lifecycle, stdout, and stderr in the sandbox's ambient run.
+An interactive PTY records its boundaries and terminal output, but never keystrokes/input. Network
+and OTLP capture remain active for either form.
+
 ## Copy
 
 Exactly one path must use `<sandbox>:/absolute/path`:

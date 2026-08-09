@@ -13,9 +13,9 @@ self-contained; read the one that matches the task.
 
 > **Core sandbox lifecycle and buffered exec are served.** Optional storage, snapshot, session,
 > volume, and secret capabilities are admitted only when the deployment provides them; refusals are
-> explicit and never silently degraded. Every create returns an ambient run, but automatic runtime
-> capture is not attached yet, so ordinary entrypoint/exec/SSH activity yields zero ambient events.
-> The `operating-sandboxes` skill carries the current capability table.
+> explicit and never silently degraded. Every create returns an ambient run backed by managed
+> entrypoint/exec/SSH, cooperative HTTP, and OTLP capture. The `operating-sandboxes` skill carries
+> the exact boundaries and current capability table.
 
 Drive hiloop through the `hiloop` CLI — it is the supported agent interface. It has dedicated command
 groups for the common work — `hiloop sandbox` (create / list / get / exec / ssh / cp / snapshot /
@@ -34,9 +34,9 @@ Install (single static binary): `curl -fsSL https://hiloop.ai/install.sh | sh`, 
 An older installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
 `port-forward`, `ssh-config`, `devbox`, `lease`, `tenant`) that no longer exist and that no
 deployment serves. Upgrade with `hiloop upgrade` rather than reaching for them, then re-install the
-skills for the harness you use (`hiloop skills install <harness>`). CLI v0.17.0 pins bundle v0.5.0;
-until a CLI pins this v0.5.1 correction, install it explicitly with
-`hiloop skills install <harness> --ref v0.5.1`.
+skills for the harness you use (`hiloop skills install <harness>`). CLI v0.17.1 pins bundle v0.5.0;
+until CLI v0.18.0 is released, install the managed sandbox-capture guidance explicitly with
+`hiloop skills install <harness> --ref v0.6.0`.
 
 There is no MCP server by design — a CLI the agent already knows how to drive costs far less context
 than loading tool definitions every turn. The TypeScript (`@hiloopai/sdk`) and Python (`hiloop`) SDKs
@@ -96,11 +96,12 @@ query the runs → delete sandboxes
 
 Two distinct things. (1) Your **hiloop credential** — never print, log, or commit `HILOOP_API_KEY` or
 any `hil_…` value; pass it through the environment or `hiloop login`. (2) A **third-party credential
-your workload needs** (a model-provider key, an API token) — never bake it into a script, image,
-environment, or a sandbox's disk; store it with the secret broker and bind it with
+your workload needs** (a model-provider key, an API token) — prefer the secret broker and bind it with
 `hiloop run --secret` so the agent uses it without seeing it. Sandbox-side bindings
 (`sandbox create --secret`) **fail closed** — the platform never runs a sandbox silently
-unauthenticated, and there is no flag that overrides that. → `managing-secrets`
+unauthenticated, and there is no flag that overrides that. A customer may deliberately inject a raw
+key into their sandbox, but the workload can read it; keep it ephemeral and never bake it into an
+image or durable workspace. → `managing-secrets`
 
 ## More
 

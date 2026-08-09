@@ -21,7 +21,7 @@ deployment; optional capabilities never silently degrade:
 | `--storage-class durable`, snapshots, `--from` | Deployment-dependent |
 | `ssh`, `cp`, scp/sftp, port forwarding | Needs the deployment session plane |
 | `--volume`, `--secret` | Refused where no backing transport exists |
-| ambient sandbox telemetry | Run identity is admitted; automatic runtime capture is not attached yet |
+| ambient sandbox telemetry | Managed capture: explicit entrypoint/exec/SSH, cooperative HTTP, OTLP |
 | nonzero `--gpus` | Unavailable in sandbox v1; do not request it |
 
 An `unsupported_capability` response is the answer. Do not invent another verb, leak a credential,
@@ -39,8 +39,8 @@ hiloop sandbox create build --image ubuntu:24.04 --cpus 2 --memory-mb 4096 -- sl
 An image whose entrypoint exits needs a long-running replacement command after `--`. Create blocks
 until the sandbox is running or terminal; there is no `--wait` step.
 
-`create --output json` returns `{run_id, sandbox:{...}}`. Read the sandbox id from `.sandbox.id` and
-its ambient run from `.run_id`; the run identity exists even before any capture producer does.
+`create --output json` returns the converged sandbox object plus `run_id`. Read the sandbox id from
+`.id` and its ambient run from `.run_id`.
 
 Common flags are `--ttl`, `--storage-class standard|durable`, repeatable `--port`, `--cpus`,
 `--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. The optional `--volume`, `--secret`,
@@ -59,13 +59,19 @@ Everything after `--` is the command. `exec` is buffered, relays the remote exit
 truncate large output with an explicit warning. Write large results to a file. Retry an ambiguous
 transport failure with the same `--idempotency-key`; do not retry a command that ran and failed.
 
-### Ambient capture is not automatic yet
+### Ambient capture
 
-The secure ambient-run binding exists, but no generic runtime `CaptureSession` observes the
-entrypoint, buffered exec, SSH, or sandbox network namespace yet. Those actions therefore append
-zero ambient events today. This is current product state, not query lag. An explicit in-guest
-`hiloop run -- <command>` creates a separate wrapped run and does not validate trusted ambient
-capture. Use `querying-observability-trees` for the working local wrapper and query surface.
+The sandbox starts one managed capture session before the workload. An explicit create command,
+every buffered exec, and non-PTY SSH receive process/stdio capture with distinct execution ids. PTY
+SSH records boundaries and terminal output, never keystrokes/input. The whole sandbox also shares a
+cooperative HTTP proxy and an OTLP/HTTP receiver; clients that ignore proxy variables or use raw
+sockets can bypass HTTP capture.
+
+An image's implicit entrypoint still receives proxy/OTLP settings, but Kubernetes cannot prepend a
+supervisor while preserving an unknown image command. Supply an explicit create command after `--`
+when entrypoint process/stdio capture matters. Inside the sandbox, `hiloop run -- <command>` joins
+the ambient run without a Hiloop credential or second proxy; run-selecting, per-command secret, and
+egress flags are refused at that already-owned boundary.
 
 For an interactive terminal, file transfer, or port forwarding, read
 [`references/sessions.md`](references/sessions.md). For snapshots or branching, read

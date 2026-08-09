@@ -4,9 +4,9 @@ description: >-
   Give a hiloop run a credential it can use but never see — a model-provider key, a third-party API
   token — via the secret broker. Covers `hiloop secret set` / `list` / `rotate` / `revoke`
   (write-only values bound to a destination host + header) and binding a secret into a captured run
-  with `hiloop run --secret`, which works today, plus why sandbox-side bindings do not yet. Use when
-  an agent needs to call an authenticated external API without the key landing in the agent's
-  context, on disk, or in the environment.
+  with `hiloop run --secret`, which works today; explains why sandbox-side bindings fail closed and
+  how a customer may deliberately inject an exposed credential while preferring safer alternatives.
+  Use when an agent needs to call an authenticated external API or configure model-provider access.
 ---
 
 # Managing secrets
@@ -65,12 +65,25 @@ credential is never placed in guest environment, argv, images, logs, or telemetr
 **fails closed** rather than degrading. A sandbox is never silently created without the credential it
 asked for.
 
-There is no flag that overrides that. Do not wait for a workaround — there isn't one.
+There is no flag that turns this into a brokered sandbox binding. An in-sandbox
+`hiloop run --secret` is also refused: it joins the ambient capture session, whose network boundary
+is already owned, and cannot add a per-command enforceable binding.
 
-Do not work around this by placing a key in a sandbox's environment, image, command line, or on its
-disk — those paths expose plaintext to the agent and to process-inspection and logging surfaces, and
-a disk copy is captured by every snapshot. **Run credentialed agent work under `hiloop run`
-instead**, where the broker path above works today.
+The customer controls the sandbox and may deliberately supply a raw provider key or use the tool's
+own login. Prefer the provider login, a restricted short-lived key, or host-side `hiloop run
+--secret`. For a temporary sandbox key, pipe it through SSH stdin into a mode-0600 file, then expose
+it only to the process that needs it:
+
+```sh
+printf '%s' "$OPENAI_API_KEY" | hiloop sandbox ssh box -- \
+  'umask 077; cat > /tmp/openai-key'
+hiloop sandbox exec box -- sh -lc \
+  'CODEX_API_KEY="$(cat /tmp/openai-key)" exec codex exec "do the task"'
+```
+
+This is supported customer-controlled injection, not secret isolation. Anything inside the sandbox
+can read the file or process environment. Remove it and revoke the key after use. Never bake a key
+into an image or durable workspace: it then survives stops and is copied by snapshots/forks.
 
 ## Manage the lifecycle
 
@@ -87,8 +100,8 @@ original rotation instead of minting another version.
 
 - Print, log, echo, or commit a secret value, or pass it where it lands in shell history (prefer
   `--value-stdin` over `--value`).
-- Bake a credential into a sandbox image, environment, or workspace — that's exactly what the
-  broker exists to avoid.
+- Bake a credential into a sandbox image or durable workspace. If a customer chooses temporary raw
+  injection, keep it ephemeral, narrowly scoped, and explicitly exposed.
 - Confuse this with your **hiloop** credential. `HILOOP_API_KEY` / `hiloop login` authenticate
   *you* to hiloop (the `authenticating` skill); a **secret** is a *third-party* credential your
   workload uses.
