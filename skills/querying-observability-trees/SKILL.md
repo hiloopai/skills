@@ -58,15 +58,15 @@ CLI v0.18.0 returns an ambient run with every successful create:
 
 ```sh
 receipt="$(hiloop sandbox create demo --output json -- sleep infinity)"
-sandbox_id="$(printf '%s' "$receipt" | jq -r '.id')"
+sandbox_id="$(printf '%s' "$receipt" | jq -r '.sandbox.id')"
 run_id="$(printf '%s' "$receipt" | jq -r '.run_id')"
 ```
 
-Read the sandbox id from `.id`, not `.sandbox.id`; the converged sandbox object is the top-level JSON
-value. The managed capture session writes an explicit create command, buffered exec, SSH output,
-cooperative HTTP, and OTLP signals to this server-bound run. PTY keystrokes/input and clients that
-bypass the proxy are not captured. An implicit image entrypoint has proxy/OTLP capture but no
-process/stdio supervision.
+Read the sandbox id from `.sandbox.id`; the converged sandbox object is nested under `sandbox`, while
+its ambient run id is top-level. The managed capture session writes an explicit create command,
+buffered exec, SSH output, cooperative HTTP, and OTLP signals to this server-bound run. PTY
+keystrokes/input and clients that bypass the proxy are not captured. An implicit image entrypoint
+has proxy/OTLP capture but no process/stdio supervision.
 
 Inside a sandbox, `hiloop run -- <command>` joins the same ambient run without registering another
 run or needing a Hiloop credential. Query it exactly like a local run:

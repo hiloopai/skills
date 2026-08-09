@@ -40,7 +40,7 @@ An image whose entrypoint exits needs a long-running replacement command after `
 until the sandbox is running or terminal; there is no `--wait` step.
 
 `create --output json` returns the converged sandbox object plus `run_id`. Read the sandbox id from
-`.id` and its ambient run from `.run_id`.
+`.sandbox.id` and its ambient run from `.run_id`.
 
 Common flags are `--ttl`, `--storage-class standard|durable`, repeatable `--port`, `--cpus`,
 `--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. The optional `--volume`, `--secret`,
