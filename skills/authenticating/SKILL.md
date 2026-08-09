@@ -91,9 +91,9 @@ hiloop keys list                                 # metadata only; never reveals 
 hiloop keys revoke <key-id-or-name>              # revoke when done; idempotent
 ```
 
-Treat a leaked key as compromised and revoke it. (For credentials a *workload* uses but the agent
-must never see — e.g. a model provider key — use the secret broker instead: the `managing-secrets`
-skill.)
+Treat a leaked key as compromised and revoke it. For third-party credentials a workload will need,
+the `managing-secrets` skill covers write-only storage and lifecycle management; delivery into a
+local run or sandbox is not available today.
 
 ## Scope: tenants are hidden now
 

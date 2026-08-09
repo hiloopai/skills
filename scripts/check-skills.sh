@@ -44,7 +44,7 @@ MAX_LINES=500
 # now tenant-defined — promote the fields you query; there are no built-in value columns).
 # Also banned: the runtime-rebuild status vocabulary. Those routes are served; a
 # capability a deployment refuses is described as a refusal, never as an absent route.
-BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release'
+BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release|hiloop run --secret|--value([=[:space:]>]|$)'
 
 # --- Layer 1: structure -------------------------------------------------------
 
@@ -80,6 +80,13 @@ for f in "${skill_files[@]}"; do
   while IFS= read -r ref; do
     [ -f "$skills_dir/$dir/references/$ref" ] || err "$rel: links missing reference references/$ref"
   done < <(grep -oE 'references/[A-Za-z0-9._-]+' "$f" | sed 's#references/##' | sort -u)
+
+  for r in "$skills_dir/$dir"/references/*.md; do
+    if grep -Eqn "$BANNED_REGEX" "$r"; then
+      err "skills/$dir/references/$(basename "$r"): contains a stale/banned token ($BANNED_REGEX):"
+      grep -En "$BANNED_REGEX" "$r" >&2 || true
+    fi
+  done
 done
 
 # Banned tokens in the orientation/index files too.
@@ -168,6 +175,10 @@ check_commands_in() {   # check_commands_in <file> <label>
       gsub(/[`()]/, " ", line)        # drop backticks and $( ) wrappers
       sub(/^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=/, "", line)  # strip VAR= prefix
       sub(/^[[:space:]]+/, "", line)
+      if (line !~ /^hiloop[[:space:]]/ && match(line, /\|[[:space:]]*hiloop[[:space:]]/)) {
+        line = substr(line, RSTART)
+        sub(/^\|[[:space:]]*/, "", line)
+      }
       if (line ~ /^hiloop[[:space:]]/) {
         n = split(line, t, /[[:space:]]+/)
         print t[2], (n >= 3 ? t[3] : ""), (n >= 4 ? t[4] : "")
@@ -277,6 +288,10 @@ check_flags_in() {   # check_flags_in <file> <label>
       for (j = 1; j <= m; j++) {
         c = cand[j]
         sub(/^[[:space:]]+/, "", c)
+        if (c !~ /^hiloop[[:space:]]/ && match(c, /\|[[:space:]]*hiloop[[:space:]]/)) {
+          c = substr(c, RSTART)
+          sub(/^\|[[:space:]]*/, "", c)
+        }
         if (c ~ /^hiloop[[:space:]]/) print c
       }
     }

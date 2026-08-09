@@ -12,8 +12,9 @@ hiloop sandbox start devbox
 
 Keep source, setup scripts, and durable outputs under `/workspace`. Package installs and other files
 outside it may disappear on start. Assume every process is gone after stop/start unless the
-deployment explicitly proves memory restore. Never store credentials on the workspace; use the
-`managing-secrets` skill for brokered credentials.
+deployment explicitly proves memory restore. Never store credentials on the workspace. The
+`managing-secrets` skill covers write-only custody, but stored values cannot be delivered to the
+sandbox today.
 
 Use `sandbox cp` for files that cannot be cloned, and clone repositories from inside the sandbox
 when egress permits. Omit `--ttl` only after checking the deployment's default expiry. Delete the
