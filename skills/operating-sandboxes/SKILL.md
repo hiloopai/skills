@@ -20,7 +20,8 @@ deployment; optional capabilities never silently degrade:
 | create/list/get/exec/stop/start/delete | Core |
 | `--storage-class durable`, snapshots, `--from` | Deployment-dependent |
 | `ssh`, `cp`, scp/sftp, port forwarding | Needs the deployment session plane |
-| `--volume`, `--secret` | Refused where no backing transport exists |
+| `--volume` | Deployment-dependent mount transport |
+| `--secret` | Refused until proof-bound request-time delivery is deployed |
 | ambient sandbox telemetry | Managed capture: explicit entrypoint/exec/SSH, cooperative HTTP, OTLP |
 | nonzero `--gpus` | Unavailable in sandbox v1; do not request it |
 
@@ -43,9 +44,10 @@ until the sandbox is running or terminal; there is no `--wait` step.
 `.sandbox.id` and its ambient run from `.run_id`.
 
 Common flags are `--ttl`, `--storage-class standard|durable`, repeatable `--port`, `--cpus`,
-`--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. The optional `--volume`, `--secret`,
-flags are capability requests, not promises. There is no sandbox `--capture` flag. The CLI accepts
-`--gpus` for forward compatibility, but sandbox v1 refuses every nonzero request.
+`--memory-mb`, repeatable `--metadata`, and `--idempotency-key`. `--volume` is a capability request,
+not a promise. A non-empty `--secret` binding is refused until proof-bound request-time delivery is
+deployed. There is no sandbox `--capture` flag. The CLI accepts `--gpus` for forward compatibility,
+but sandbox v1 refuses every nonzero request.
 
 ## Inspect and execute
 
@@ -70,8 +72,8 @@ sockets can bypass HTTP capture.
 An image's implicit entrypoint still receives proxy/OTLP settings, but Kubernetes cannot prepend a
 supervisor while preserving an unknown image command. Supply an explicit create command after `--`
 when entrypoint process/stdio capture matters. Inside the sandbox, `hiloop run -- <command>` joins
-the ambient run without a Hiloop credential or second proxy; run-selecting, per-command secret, and
-egress flags are refused at that already-owned boundary.
+the ambient run without a Hiloop credential or second proxy; run-selecting and egress flags are
+refused at that already-owned boundary, and there is no per-command secret-binding flag.
 
 For an interactive terminal, file transfer, or port forwarding, read
 [`references/sessions.md`](references/sessions.md). For snapshots or branching, read

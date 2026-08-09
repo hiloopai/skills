@@ -11,9 +11,10 @@ self-contained; read the one that matches the task.
 
 ## The interface: the `hiloop` CLI
 
-> **Core sandbox lifecycle and buffered exec are served.** Optional storage, snapshot, session,
-> volume, and secret capabilities are admitted only when the deployment provides them; refusals are
-> explicit and never silently degraded. Every create returns an ambient run backed by managed
+> **Core sandbox lifecycle and buffered exec are served.** Optional storage, snapshot, session, and
+> volume capabilities are admitted only when the deployment provides them; secret bindings fail
+> closed until proof-bound request-time delivery is deployed. Refusals are explicit and never
+> silently degraded. Every create returns an ambient run backed by managed
 > entrypoint/exec/SSH, cooperative HTTP, and OTLP capture. The `operating-sandboxes` skill carries
 > the exact boundaries and current capability table.
 

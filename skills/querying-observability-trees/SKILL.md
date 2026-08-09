@@ -40,8 +40,8 @@ it to query. Three capture paths run in parallel:
 - **Network capture** (model calls, tool/HTTP traffic): the default `--net-capture=auto` uses
   transparent capture on supported Linux hosts, and warns before falling back to an
   observation-only cooperative proxy elsewhere; `netns`/`proxy` request a mode explicitly, `off`
-  disables it. Secret bindings and restrictive egress policies require the transparent mode and
-  fail before the child starts if it is unavailable.
+  disables it. Restrictive egress policies require the transparent mode and fail before the child
+  starts if it is unavailable. Local runs have no secret-binding option.
 - **The embedded OTLP receiver** (the agent's own spans/logs): on by default; `--no-otlp` disables.
 - **stdio capture**: always on.
 
