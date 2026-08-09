@@ -47,7 +47,9 @@ Every query runs through a gateway that:
 **Payload reference** (events that captured a body):
 
 - `payload_digest` — content address of the captured body. Fetch the bytes with
-  `hiloop events payload <event-id>`, or resolve them in SQL with `payload_text(payload_digest)`.
+  `hiloop events payload <event-id>`. Deployments that register the optional SQL resolver can also
+  use `payload_text(payload_digest)`; if the query engine reports that function unavailable, fetch
+  by event id instead of treating the payload as absent.
 - `payload_media_type`, `payload_size_bytes` — what the body is and how big.
 
 **HTTP** (`llm` / `net` signals): `http_method`, `http_host`, `http_target`, `http_status_code`,
@@ -66,7 +68,8 @@ where promoted fields are real named columns (see "Views" below).
 LLM shapes (model, token counts, messages) are **not** precomputed columns — they derive from the
 raw captured bodies at query time:
 
-- `payload_text(payload_digest)` — resolve a captured body to text.
+- `payload_text(payload_digest)` — resolve a captured body to text when the deployment exposes this
+  optional query function. The portable fallback is `hiloop events payload <event-id>`.
 - `hiloop_sse_reassemble(text)` — reassemble a streamed (SSE) response into one JSON document.
 - `hiloop_json_get(json_text, path)` — extract a scalar by dot-separated path
   (`'model'`, `'usage.output_tokens'`, `'choices.0.finish_reason'`; a leading `$.` is accepted and
@@ -147,10 +150,11 @@ Two kinds of named views resolve as `FROM`-clause tables alongside `events`:
 
 ## Response shape
 
-The query returns JSON object rows: `{ "rows": [ { "col": value, … }, … ] }`, nulls omitted; 64-bit
-integers (e.g. `ts_wall_ns`) come back as JSON strings so they survive every JSON parser. The CLI
-renders them as a table whose columns are the union of keys across rows; `--output json` is the
-untruncated machine view.
+With `--output json`, the CLI returns a top-level array of row objects:
+`[ { "col": value, … }, … ]`. It does not wrap the array in a `rows` property. Nulls are omitted;
+64-bit integers (e.g. `ts_wall_ns`) come back as JSON strings so they survive every JSON parser.
+Without JSON output, the CLI renders a table whose columns are the union of keys across rows;
+`--output json` is the untruncated machine view.
 
 ## Related commands (their own verbs, not SQL)
 
