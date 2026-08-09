@@ -15,7 +15,7 @@ work. You do **not** want that key in the agent's context, in an env var the age
 disk where every process can read it. hiloop currently provides write-only encrypted custody and
 lifecycle management. It does **not** currently deliver a stored value to a local run or sandbox.
 
-> Tenant-scoped. Authenticate first (the `authenticating` skill). Values are stored encrypted and
+> Org-scoped. Authenticate first (the `authenticating` skill). Values are stored encrypted and
 > never returned.
 
 ## Store a secret (write-only)
@@ -24,6 +24,7 @@ The value is **write-only** — supplied once, never echoed back. Piped stdin is
 channel, keeping it out of hiloop's argv and your shell history:
 
 ```sh
+# Run in a trusted operator shell with tracing disabled.
 printf '%s' "$OPENAI_API_KEY" | hiloop secret set openai \
   --value-stdin \
   --kind bearer \
@@ -32,6 +33,8 @@ printf '%s' "$OPENAI_API_KEY" | hiloop secret set openai \
 
 - `--value-stdin` requires non-terminal stdin containing exactly one non-empty line of at most 4096
   bytes. One final LF or CRLF is removed; other whitespace is preserved.
+- If an agent performs the transfer, pipe directly from the existing secret store into hiloop.
+  Never copy the value into agent context or print it between stores.
 - `--kind`, `--dest-host`, `--dest-header`, and `--scheme` are stored metadata today. They do not
   authorize or inject a request yet.
 - Use `bearer` plus the exact intended public HTTPS host for the planned first delivery slice. That
