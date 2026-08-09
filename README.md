@@ -59,14 +59,16 @@ hiloop skills install all
 paths, native alternatives, and unsupported-harness fallback instructions are in
 [`SETUP.md`](SETUP.md).
 
-CLI v0.16.0 still pins an older bundle. Its `--ref v0.5.0` override fetches this content but cannot
-retire removed skill directories; re-run the install after upgrading to a CLI that pins v0.5.0.
+CLI v0.17.0 pins bundle v0.5.0. Until a CLI pins this v0.5.1 correction, pass
+`--ref v0.5.1` when installing.
 
 Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
 
 > **Sandbox status.** Core lifecycle and buffered exec are served. Optional capabilities are
 > deployment-dependent and refuse explicitly when absent; see the capability table in
-> [`operating-sandboxes`](skills/operating-sandboxes/SKILL.md).
+> [`operating-sandboxes`](skills/operating-sandboxes/SKILL.md). Every create returns an ambient run,
+> but automatic runtime capture is not attached yet; normal entrypoint/exec/SSH activity produces
+> zero ambient events.
 
 For autonomous metric optimization, point the agent at your task, fixed dataset/scorer, and the
 [`autoresearch`](skills/autoresearch/SKILL.md) skill. Watch it with the public

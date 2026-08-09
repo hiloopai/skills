@@ -9,8 +9,11 @@ hiloop skills install claude-code  # cursor | codex | gemini | copilot
 hiloop skills install all
 ```
 
-CLI v0.16.0 still pins an older bundle. Its `--ref v0.5.0` override fetches this content but cannot
-retire removed skill directories; re-run the install after upgrading to a CLI that pins v0.5.0.
+CLI v0.17.0 pins bundle v0.5.0. Until a CLI pins this v0.5.1 correction, install with:
+
+```sh
+hiloop skills install <harness> --ref v0.5.1
+```
 
 Claude Code, Cursor, Codex, and Gemini installs are user-wide. Copilot installs into
 `.github/skills/` in the current repository. Re-run the same command to refresh an installation.
