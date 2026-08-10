@@ -150,8 +150,9 @@ Two kinds of named views resolve as `FROM`-clause tables alongside `events`:
 
 ## Response shape
 
-With `--output json`, the CLI returns a top-level array of row objects:
-`[ { "col": value, … }, … ]`. It does not wrap the array in a `rows` property. Nulls are omitted;
+With `--output json`, CLI v0.18.0 returns an envelope with the selected column names and row
+objects: `{ "columns": ["col", …], "rows": [{ "col": value, … }, …] }`. Read query results
+from `.rows`; an aggregate's first result is therefore `.rows[0]`, not `.[0]`. Nulls are omitted;
 64-bit integers (e.g. `ts_wall_ns`) come back as JSON strings so they survive every JSON parser.
 Without JSON output, the CLI renders a table whose columns are the union of keys across rows;
 `--output json` is the untruncated machine view.
