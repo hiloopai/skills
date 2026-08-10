@@ -97,6 +97,17 @@ for f in AGENTS.md README.md llms.txt; do
   fi
 done
 
+# The released query wire is an envelope, not a bare row array. This prose contract is easy to
+# invert while editing examples, and command/flag discovery cannot detect a response-shape drift.
+query_reference="$skills_dir/querying-observability-trees/references/events-sql.md"
+grep -Fq '`{ "columns": ["col", …], "rows": [{ "col": value, … }, …] }`' \
+  "$query_reference" || err "query reference: missing the CLI v0.18.0 {columns, rows} JSON envelope"
+grep -Fq 'from `.rows`' "$query_reference" \
+  || err "query reference: missing the required .rows access guidance"
+if grep -Fq 'top-level array of row objects' "$query_reference"; then
+  err "query reference: contains the stale top-level-array response claim"
+fi
+
 # --- Layer 2: CLI command existence (best-effort) -----------------------------
 
 if ! command -v hiloop >/dev/null 2>&1; then
