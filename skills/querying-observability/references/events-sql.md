@@ -11,8 +11,8 @@ column; omitted, a minimal default set); `--sql` sends an arbitrary `SELECT` (in
 
 Every query runs through a gateway that:
 
-- **Forces a tenant predicate from your identity**, so your SQL is tenant-agnostic — you never write
-  (and can't reach) a `tenant_id` other than your own.
+- **Scopes every query to the organization from your identity**, so you never write an organization
+  predicate and cannot reach another organization.
 - **Allows only read-only single-statement `SELECT`s.** DDL/DML (`INSERT`/`UPDATE`/`DROP`/…), multiple
   statements, `information_schema`, and file-reading functions are rejected.
 - **Validates columns and functions** before executing, and **caps resources** (row limit, memory,
@@ -27,7 +27,7 @@ Every query runs through a gateway that:
 **Event spine** (every event):
 
 - `event_id` — unique event id.
-- `run_id` — the run (session) the event belongs to; `root_run_id` — the root run of its tree.
+- `run_id` — the run (session) the event belongs to; `root_run_id` — the root of related runs.
 - `lineage_path` — the run-lineage path: a dotted sequence of run ULIDs from the root run to this
   event's run (e.g. `01K6Z….01K70…`); breakdown or scope by this to compare branches.
 - `project_id` — the project the run records under.
@@ -59,7 +59,7 @@ and `http_exchange_id` — the join key pairing a request event with its respons
 
 **Annotations** (`signal = 'annotation'`; see the `annotating-runs` skill): `target_event_id` (the
 event judged) and `range_start_ns` / `range_end_ns` (for range annotations) are structural columns.
-The judgment payload itself is tenant-defined and lives in `attributes_json` — read any field by
+The judgment payload itself is organization-defined and lives in `attributes_json` — read any field by
 name with `hiloop_json_get(attributes_json, 'field')`, or query the schema's `ann_<schema>` view,
 where promoted fields are real named columns (see "Views" below).
 
@@ -146,7 +146,7 @@ Two kinds of named views resolve as `FROM`-clause tables alongside `events`:
   (`event_id`, `run_id`, `root_run_id`, `lineage_path`, `project_id`, `principal`, `ts_wall_ns`,
   `target_event_id`, `range_start_ns`, `range_end_ns`). The `ann_` namespace is reserved.
 - **Data views** — your own saved `SELECT`s (`hiloop data-views create <name> --sql @file`), for
-  derivations you keep reusing. The stored SQL is tenant-agnostic; your identity scopes every run.
+  derivations you keep reusing. Your identity scopes every query to its organization.
 
 ## Response shape
 
@@ -160,8 +160,6 @@ Without JSON output, the CLI renders a table whose columns are the union of keys
 ## Related commands (their own verbs, not SQL)
 
 - **`hiloop runs tail <run-id>`** — follow a run's events live; `--signal` narrows it.
-- **`hiloop runs list --root-run-id <id>`** — the runs of one lineage tree, without SQL.
+- **`hiloop runs list --root-run-id <id>`** — related runs with one root id, without SQL.
 - **`hiloop runs show <run-id>`** — one run's transcript, time-ordered, small payloads resolved inline.
 - **`hiloop events payload <event-id>`** — the raw captured payload bytes, exactly as captured.
-- **`hiloop api /v1/telemetry/branch-diff`** — server-side set-difference of two runs' subtrees; the
-  CLI-side anti-join recipe is in the parent SKILL.md §7.

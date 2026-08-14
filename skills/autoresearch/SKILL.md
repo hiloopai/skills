@@ -4,7 +4,7 @@ description: >-
   Run an autonomous, evidence-preserving research loop with hiloop: reuse a project, safely
   register idea and experiment schemas, propose diverse ideas, execute and score bounded arms,
   record evolving idea cards and immutable experiment rows, ensemble winners, and expose the
-  run through the leaderboard, lineage tree, and annotations. Use when asked to autonomously
+  run through the leaderboard, related-run lineage, and annotations. Use when asked to autonomously
   optimize a metric over a supplied dataset and scorer with hiloop, run a hiloop experiment loop,
   or produce a ranked hiloop research leaderboard.
 ---
@@ -54,7 +54,7 @@ experiment annotations attach to that run.
 
 ## 2. Check schemas before registering
 
-Schema names are tenant-wide. Registration is not an idempotent upsert: registering an existing
+Schema names are organization-wide. Registration is not an idempotent upsert: registering an existing
 name creates a new version. Never re-register either schema just to make a check pass.
 
 Set `AUTORESEARCH_SKILL_DIR` to the directory containing this `SKILL.md`. First run:

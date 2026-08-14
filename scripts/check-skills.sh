@@ -41,10 +41,10 @@ MAX_LINES=500
 # Tokens that must never reappear: the dropped QuerySpec query surface, the
 # retired fork-node/fork-path vocabulary (replaced by run-lineage / lineage_path),
 # and the retired built-in annotation value flags/columns (the annotation payload is
-# now tenant-defined — promote the fields you query; there are no built-in value columns).
+# now organization-defined — promote the fields you query; there are no built-in value columns).
 # Also banned: the runtime-rebuild status vocabulary. Those routes are served; a
 # capability a deployment refuses is described as a refusal, never as an absent route.
-BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release|hiloop run --secret|--value([=[:space:]>]|$)'
+BANNED_REGEX='QuerySpec|query-spec\.md|--spec\b|FILTER_OP_|CALCULATION_OP_|fork_node_id|fork_path|HILOOP_FORK_NODE_ID|HILOOP_FORK_PATH|--fork-path|--fork-node-id|--score|--outcome|--annotator-kind|annotator_kind|mid-rebuild|runtime rebuild|runtime is being rebuilt|runtime is rebuilt|no deployment serves|routes are unserved|CLI'"'"'s next release|hiloop run --secret|--value([=[:space:]>]|$)|querying-observability-trees|tree-native|branch-diff|\btenant\b'
 
 # --- Layer 1: structure -------------------------------------------------------
 
@@ -99,7 +99,7 @@ done
 
 # The released query wire is an envelope, not a bare row array. This prose contract is easy to
 # invert while editing examples, and command/flag discovery cannot detect a response-shape drift.
-query_reference="$skills_dir/querying-observability-trees/references/events-sql.md"
+query_reference="$skills_dir/querying-observability/references/events-sql.md"
 grep -Fq '`{ "columns": ["col", …], "rows": [{ "col": value, … }, …] }`' \
   "$query_reference" || err "query reference: missing the CLI v0.18.0 {columns, rows} JSON envelope"
 grep -Fq 'from `.rows`' "$query_reference" \

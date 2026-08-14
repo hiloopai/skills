@@ -20,23 +20,23 @@ a human's verdict on a branch. Annotations land in the **same `events` table** a
 (signal `annotation`) and carry the same `(run_id, lineage_path)` run-lineage identity as the events
 they judge.
 
-An annotation's payload is **entirely tenant-defined** — there are no built-in fields. You decide
+An annotation's payload is **entirely organization-defined** — there are no built-in fields. You decide
 what an annotation carries (a score, a verdict, a metrics object, a note) by registering a schema
 for it. To make a field fast to filter and sort on across many runs, **promote** it at register
 time: promoted fields become named columns of the schema's auto-created query view,
 `ann_<schema-name>`; promoted or not, every field stays in the payload and is read back by name —
 so "show me only the branches that worked" is one SQL query later (see
-`querying-observability-trees`).
+`querying-observability`).
 
 ## 1. Register a schema (once)
 
 Every annotation names a **schema** — a JSON Schema (draft 2020-12) its payload is validated against
-at ingest, so a label set stays consistent. Schema names are shared across the whole tenant, so
+at ingest, so a label set stays consistent. Schema names are shared across the whole organization, so
 **namespace them per workstream** (`experiment.v1`, not `v1`) — re-registering a name someone else
 already uses silently creates its next version. Promote the fields you intend to query (`--promote
 field:type[:identity][:bloom]`, where `type` is `str` / `f64` / `i64` / `bool`) so they get columnar
 acceleration; `:identity` makes a field part of the latest-wins supersession key, and `:bloom` adds a
-point-lookup index (string fields only). Register it once per tenant:
+point-lookup index (string fields only). Register it once per organization:
 
 ```sh
 hiloop annotation-schema register experiment.v1 --json-schema '{
@@ -80,9 +80,9 @@ hiloop annotations add \
   `HILOOP_RUN_ID` — which is how a locally-wrapped experiment **self-annotates** its own result.
   **Metrics are recorded the same way** — there is no stdout-metric convention; a training run
   annotates its own readings as it goes (`--data '{"metrics":{"val_bpb":0.9932},"step":1200}'`).
-  A **sandbox** is different: the platform injects no credential or ambient run authority into the
-  guest, so a sandbox run is annotated from an authenticated client outside it. (`sandbox create
-  --capture on` is refused with `unsupported_capability` — see `operating-sandboxes`.)
+  A sandbox guest has ambient authority to join its managed run, but no general Hiloop API
+  credential. Add annotations from an authenticated client outside the sandbox unless the session
+  was deliberately given a credential.
 - `--target-event <event-id>` pins the annotation to one event; omit it for a run-level judgment.
 - `--range <start>..<end>` targets a time window instead — each endpoint an RFC 3339 timestamp
   (`2026-07-03T10:14:22Z`) or a raw wall-clock nanosecond value (as returned in `ts_wall_ns` query
@@ -123,8 +123,7 @@ hiloop annotations list --project <slug>                  # a project's rollup, 
 
 `--history` returns every stored version instead of just the current one.
 
-Annotations are also queryable immediately as SQL. The payoff — "fan out is cheap, review is the
-bottleneck" — is filtering a fan-out tree down to the good branches. Promoted fields are named columns of the
+Annotations are also queryable immediately as SQL. Promoted fields are named columns of the
 schema's `ann_<schema>` view:
 
 ```sh
@@ -136,10 +135,10 @@ hiloop query --sql "
 ```
 
 The view already returns the current annotation per anchor, so adding `root_run_id = '<root-run-id>'`
-to that `WHERE` clause rolls up a whole fan-out: one row per annotated run in the tree, which is the
-fastest way to eyeball one. `hiloop runs list --root-run-id <root-run-id>` lists the same tree's runs
-when you want the runs rather than their scores.
+to that `WHERE` clause compares related runs: one row per annotated run. `hiloop runs list
+--root-run-id <root-run-id>` lists the same related runs when you want the runs rather than their
+scores.
 
 An unpromoted field stays in the JSON payload — read it by name from the events table with
-`hiloop_json_get(attributes_json, 'note')`. See `querying-observability-trees` for the full query
+`hiloop_json_get(attributes_json, 'note')`. See `querying-observability` for the full query
 surface.

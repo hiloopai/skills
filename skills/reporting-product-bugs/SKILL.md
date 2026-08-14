@@ -14,13 +14,13 @@ description: >-
 
 When **hiloop itself** misbehaves — a CLI panic, an API response that contradicts the docs, a
 sandbox that does the wrong thing — report it to the hiloop team from right where you are.
-`hiloop feedback` stores the report under your tenant and surfaces it for review.
+`hiloop feedback` stores the report under your organization and surfaces it for review.
 
 Feedback is for **product bugs and product ideas only**: what *hiloop* did wrong, never what your
 task produced. Research results, experiment outcomes, and eval scores are annotations on your run
 (the `annotating-runs` skill) or your own deliverable — not feedback.
 
-> Authenticate first (the `authenticating` skill). The tenant a report lands under always comes
+> Authenticate first (the `authenticating` skill). The organization a report lands under always comes
 > from your credential, never from the report body.
 
 ## File a bug
@@ -51,7 +51,7 @@ hiloop feedback "runs tail panics on terminal resize" \
 - `--repro` — steps runnable as-is: exact commands, in order, that reproduce the bug.
 - `--evidence` (repeatable) — run / event / artifact ids. hiloop's telemetry already captured the
   failing run, so ids let the team jump straight to the trace; find them with the
-  `querying-observability-trees` skill.
+  `querying-observability` skill.
 - `--fingerprint` — a stable dedup key, `<surface>/<short-slug>` (e.g. `cli/tail-resize-panic`).
   Derive it from the finding's content, never from a timestamp, so repeat reports of the same
   finding group together. Already reported this finding? Reuse the same fingerprint instead of

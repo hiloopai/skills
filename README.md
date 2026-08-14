@@ -2,7 +2,7 @@
 
 Open-source [Agent Skills](https://agentskills.io) that teach AI coding agents to operate
 **[hiloop](https://hiloop.ai)** — isolated agent sandboxes you can snapshot and branch, with
-tree-native observability.
+run-scoped observability.
 
 The skills follow the open Agent Skills standard, so they work across harnesses (Claude Code, Cursor,
 Codex, and others). They drive hiloop through the `hiloop` **CLI** — the supported agent interface —
@@ -19,7 +19,7 @@ definitions every turn.
 | [`managing-volumes`](skills/managing-volumes/SKILL.md) | Publish and version large data once, mount it into many sandboxes |
 | [`managing-secrets`](skills/managing-secrets/SKILL.md) | Manage write-only credentials; delivery remains fail-closed until the proof-bound gateway ships |
 | [`launching-as-workloads`](skills/launching-as-workloads/SKILL.md) | Launch a run as a registered machine identity (a workload) and control who may launch as it |
-| [`querying-observability-trees`](skills/querying-observability-trees/SKILL.md) | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
+| [`querying-observability`](skills/querying-observability/SKILL.md) | Capture a run, query its telemetry with SQL, and follow it live |
 | [`annotating-runs`](skills/annotating-runs/SKILL.md) | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | [`reporting-product-bugs`](skills/reporting-product-bugs/SKILL.md) | Report a hiloop bug (or send product feedback) to the hiloop team with `hiloop feedback` |
 
@@ -61,7 +61,7 @@ paths, native alternatives, and unsupported-harness fallback instructions are in
 
 The CLI pins a verified bundle release.
 
-Then ask your agent to capture a run and query the trace tree — the skills guide the rest.
+Then ask your agent to capture a run and query its telemetry — the skills guide the rest.
 
 > **Sandbox status.** Core lifecycle and buffered exec are served. Optional capabilities are
 > deployment-dependent and refuse explicitly when absent; see the capability table in

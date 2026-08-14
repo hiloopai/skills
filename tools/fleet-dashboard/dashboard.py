@@ -471,7 +471,7 @@ def leaderboard_sql(view: str, *, limit: int = 400) -> str:
 
 
 def events_sql(project_id: str, *, cutoff_ns: int, limit: int = 60) -> str:
-    """The ticker SELECT: recent events, scoped tight so the engine never cold-scans the tenant."""
+    """The ticker SELECT: recent events, scoped tight so the engine never cold-scans the organization."""
     pid = uuid.UUID(project_id)  # refuses anything that is not a real project UUID
     return (
         "SELECT ts_wall_ns, signal, name, run_id, attributes_json FROM events "  # noqa: S608 - validated UUID + int literals, not user SQL

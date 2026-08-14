@@ -69,10 +69,9 @@ hiloop whoami
 
 This calls `GET /v1/whoami` and prints the identity the credential resolves to: the **principal** —
 its `kind` (`user` or `service_account`), id, and the API key's id and name (`email` too for a user
-key) — and the **tenant** (id + slug). `--output json` prints pretty-printed
-`{"principal": {…}, "tenant": {…}}`; only `principal.kind` and `principal.id` are always present —
-optional fields are omitted when absent, and `tenant` is omitted entirely for an org-scoped
-credential, so read defensively. **Always run `whoami` first** — it is the cheapest way to
+key) — and the **organization** (id + slug). `--output json` prints pretty-printed
+`{"principal": {…}, "organization": {…}}`; only `principal.kind` and `principal.id` are always
+present, so read optional fields defensively. **Always run `whoami` first** — it is the cheapest way to
 confirm auth and scope are correct before a real operation. If it fails with 401/unauthenticated,
 the credential is missing, malformed, expired, or revoked.
 
@@ -81,11 +80,11 @@ the credential is missing, malformed, expired, or revoked.
 If you have an authenticated session and need a key for an unattended agent to run with, mint one
 scoped least-privilege and hand it over once (the secret is shown only at creation). The key's
 **name is its identity everywhere**: it is what `whoami` reports as `key_name` and what the
-`PRINCIPAL` column of `hiloop runs list` / `tree` / `show` renders for everything the key writes —
+`PRINCIPAL` column of `hiloop runs list` / `show` renders for everything the key writes —
 so name keys for who acts with them (`laptop`, `ci-bot`):
 
 ```sh
-hiloop keys create agent-ci               # acts as the tenant (--kind service_account, the default)
+hiloop keys create agent-ci               # service account (--kind service_account, the default)
 hiloop keys create laptop --kind user     # acts on behalf of you
 hiloop keys list                                 # metadata only; never reveals the secret
 hiloop keys revoke <key-id-or-name>              # revoke when done; idempotent
@@ -95,17 +94,10 @@ Treat a leaked key as compromised and revoke it. For third-party credentials a w
 the `managing-secrets` skill covers write-only storage and lifecycle management; delivery into a
 local run or sandbox is not available today.
 
-## Scope: tenants are hidden now
+## Scope
 
-**There is no `hiloop tenant` command** — not `tenant switch`, not `tenant egress`, not anything
-else. The whole surface was removed: each org gets **one auto-provisioned tenant**, so
-there is nothing to pick between and nothing to switch to. If you find a script or an older
-instruction calling `hiloop tenant switch`, it is stale — delete the call rather than looking for a
-replacement.
-
-Your work is still tenant-scoped; the scope is simply implied by your credential. `hiloop whoami`
-reports the tenant you resolve to, and there is no flag anywhere — on `login` or elsewhere — that
-selects a different one.
+Your credential determines the organization for every request. `hiloop whoami` reports that
+organization; project selection then scopes project-aware commands.
 
 ## Never
 

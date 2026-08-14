@@ -1,11 +1,11 @@
 ---
 name: launching-as-workloads
 description: >-
-  Launch hiloop runs as a workload — a named machine identity registered in your tenant — with
+  Launch hiloop runs as a workload — a named machine identity registered in your organization — with
   `--as workload/NAME` on `hiloop run` (currently the only verb that takes it). Covers
   `hiloop workloads create` (registration is always explicit — launching as an unregistered name
   is an error) / `list` / `show` (including the launch ACL) / `allow-launch` (open launching to
-  every tenant member or restrict it to kinded principals — users by id and/or service-account
+  every organization member or restrict it to kinded principals — users by id and/or service-account
   keys such as a CI pipeline's; owner/admin only) / `delete` (owner/admin
   only; asks for confirmation unless `--yes`; live sandboxes conflict, past attribution keeps
   only the raw id). Use when work should be attributed to a service identity — a bot, a
@@ -15,15 +15,15 @@ description: >-
 
 # Launching as workloads
 
-A **workload** is a named machine identity registered in your tenant that work can be launched
+A **workload** is a named machine identity registered in your organization that work can be launched
 **as** — `codex-runner`, `nightly-sync`, `eval-fleet` — so the work is attributed to the
 role that did it, not just to whichever credential happened to launch it. Each workload carries a
 **launch ACL** saying who may launch as it. The executing identity is always **declared, never
 inferred**: omit `--as` and you run as your own identity; pass `--as workload/<name>` and the
 control plane checks the name against the registry before the launch proceeds.
 
-> Tenant-scoped. Authenticate first (the `authenticating` skill); workloads live in your tenant and
-> their names are unique within it.
+> Organization-scoped. Authenticate first (the `authenticating` skill); workloads live in your
+> organization and their names are unique within it.
 
 ## Register a workload (explicit, fail-closed)
 
@@ -36,7 +36,7 @@ hiloop workloads create codex-runner --description "Codex fleet runner"
 
 Names must be lowercase letters, digits, `.`, `_` or `-`, starting and ending with a letter or
 digit — anything else is rejected with `invalid_argument` (400), and re-registering an existing
-name is `already_exists` (409). A new workload starts **open to launch by any tenant member**.
+name is `already_exists` (409). A new workload starts **open to launch by any organization member**.
 
 Deleting is explicit too — an owner/admin action with a confirmation prompt. Pass `--yes` to skip
 the prompt (required when stdin is not an interactive terminal, e.g. in a script):
@@ -104,7 +104,7 @@ launch as it:
 }
 ```
 
-`launch_acl.policy` is `WORKLOAD_LAUNCH_POLICY_MEMBERS` (any tenant member may launch — the default
+`launch_acl.policy` is `WORKLOAD_LAUNCH_POLICY_MEMBERS` (any organization member may launch — the default
 for a new workload, `launchers` empty) or `WORKLOAD_LAUNCH_POLICY_RESTRICTED` (only the listed
 `launchers`). Each launcher is a **kinded principal** — `{"kind": "user", "principal_id": "<user
 id>"}` or `{"kind": "service_account", "principal_id": "<key id>"}`. The table view renders the
@@ -115,8 +115,8 @@ exit 1.
 ## Control who may launch as it
 
 `allow-launch` **sets** the launch ACL — it is a PUT, so each call replaces the previous ACL, never
-appends to it. It requires an owner or admin in the tenant. Either open it to all members, or
-restrict it to named principals — tenant members by user id (`--user`) and/or service-account keys
+appends to it. It requires an owner or admin in the organization. Either open it to all members, or
+restrict it to named principals — organization members by user id (`--user`) and/or service-account keys
 by key id (`--service-account`, e.g. authorizing a CI pipeline's key to launch as the role):
 
 ```sh
@@ -125,14 +125,14 @@ hiloop workloads allow-launch codex-runner \
   --user 47a5bc34-c573-4c50-a8a9-392b76a59e5b \
   --service-account c3558c90-f175-4ac4-bc5c-8ba82028f2c6
 
-# Reopen launching to every tenant member (the default for a new workload).
+# Reopen launching to every organization member (the default for a new workload).
 hiloop workloads allow-launch codex-runner --all-members
 ```
 
 `--user` and `--service-account` are both repeatable and combine into one launcher list;
 `--all-members` excludes both, and passing none of the three is an error (`pass --all-members to
 open launching, or at least one --user or --service-account to restrict it`). A `--service-account`
-id must be one of your tenant's service-account keys — anything else is rejected. The command
+id must be one of your organization's service-account keys — anything else is rejected. The command
 prints the updated workload — `--output json` returns the full record, e.g. `"launchers":
 [{"kind": "service_account", "principal_id": "c3558c90-…"}]` — so the new ACL is confirmed in the
 same call.
