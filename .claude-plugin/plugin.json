@@ -3,7 +3,7 @@
   "name": "hiloop",
   "displayName": "hiloop",
   "description": "Operate hiloop from your agent: authenticate, create sandboxes, run commands, snapshot and branch them, and query run-scoped telemetry via the hiloop CLI.",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "author": {
     "name": "hiloop",
     "url": "https://hiloop.ai"

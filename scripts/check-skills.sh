@@ -90,7 +90,8 @@ for f in "${skill_files[@]}"; do
 done
 
 # Banned tokens in the orientation/index files too.
-for f in AGENTS.md README.md llms.txt; do
+for f in AGENTS.md README.md llms.txt .claude-plugin/marketplace.json \
+  .claude-plugin/plugin.json gemini-extension.json; do
   [ -f "$repo_root/$f" ] || continue
   if grep -Eqn "$BANNED_REGEX" "$repo_root/$f"; then
     err "$f: contains a stale/banned token ($BANNED_REGEX)"

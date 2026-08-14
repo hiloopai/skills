@@ -88,7 +88,7 @@ hiloop runs show 01K70…                # one run's full event transcript, in t
 Related runs carry the same `root_run_id`, so `runs list --root-run-id <id>` returns them as a flat
 listing. To put each run's own numbers beside it (the latest annotation of a
 registered schema, a token or cost rollup), query for them instead: the `ann_<schema>` views take
-the same `root_run_id` scoping (§8), and the `events` table groups by `lineage_path` (§4).
+the same `root_run_id` scoping (§7), and the `events` table groups by `lineage_path` (§4).
 `runs show --output json` prints `{run, events}` — the run record plus the canonical event stream,
 payloads up to 64 KiB inlined under `payload_ref.inline`.
 
