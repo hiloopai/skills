@@ -1,9 +1,8 @@
 # Operating hiloop
 
-hiloop runs AI agents in **isolated sandboxes** with **tree-native observability**. You boot
+hiloop runs AI agents in **isolated sandboxes** with **run-scoped observability**. You boot
 sandboxes from an unmodified OCI image or from a snapshot, branch N sandboxes from one snapshot to
-explore several paths from identical state, and query what each run did — telemetry keyed by
-position in the run-lineage tree.
+explore several paths from identical state, and query what each run did.
 
 This repository is a set of **Agent Skills** that teach you to operate hiloop. They follow the
 open [Agent Skills standard](https://agentskills.io) and work across agent harnesses. Each skill is
@@ -33,7 +32,7 @@ hiloop api <path> [-X get|post|put|delete] [-H 'header: value'] [-d '<json>'] [-
 
 Install (single static binary): `curl -fsSL https://hiloop.ai/install.sh | sh`, then `hiloop --version`.
 An older installed CLI still carries retired verbs (`sandbox run`, `fork`, `access`, `expose`,
-`port-forward`, `ssh-config`, `devbox`, `lease`, `tenant`) that no longer exist and that no
+`port-forward`, `ssh-config`, `devbox`, `lease`) that no longer exist and that no
 deployment serves. Upgrade with `hiloop upgrade` rather than reaching for them, then re-install the
 skills for the harness you use (`hiloop skills install <harness>`). The CLI pins a verified bundle
 release.
@@ -51,8 +50,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 2. **Select a project explicitly.** Project selection never guesses: `--project` where the command
    takes it (`run`, `runs list`, `query`, `volume …`, `annotations …`), otherwise `HILOOP_PROJECT` >
    the active context's project. The `sandbox` verbs have no `--project` flag — set the environment
-   variable or the context. Tenant scope is implied by your credential; there is no tenant-switching
-   command.
+   variable or the context. Organization scope is implied by your credential.
 3. **Name the environment explicitly.** A sandbox create takes at most one of `--image` (an
    unmodified OCI image, digest-pinned in production) or `--from <snapshot>`; omitting both boots the
    platform default image, which is a convenience, not an environment identity. Size it with
@@ -79,7 +77,7 @@ exist for writing application code that runs *inside* a sandbox, not for operati
 | `managing-volumes` | Publish and version large data once, mount it into many sandboxes |
 | `managing-secrets` | Manage write-only third-party credentials and understand fail-closed delivery |
 | `launching-as-workloads` | Launch a run as a registered machine identity (a workload) and control who may launch as it |
-| `querying-observability-trees` | Capture a run and query (SQL) / tail / diff its run-lineage telemetry |
+| `querying-observability` | Capture a run, query its telemetry with SQL, and follow it live |
 | `annotating-runs` | Stamp structured judgments (outcome / score) you can filter and aggregate on |
 | `reporting-product-bugs` | Report a hiloop bug (or send product feedback) to the hiloop team — never your task's results |
 

@@ -1,21 +1,20 @@
 ---
-name: querying-observability-trees
+name: querying-observability
 description: >-
-  Capture and query hiloop's tree-native telemetry — what an agent actually did, keyed by its
-  run-lineage path. Covers wrapping an agent with `hiloop run` (network capture modes, OTLP,
-  labels), orienting with `hiloop runs` (list / show / tail / complete), querying with read-only
+  Capture and query hiloop telemetry — what an agent actually did during a run. Covers wrapping an
+  agent with `hiloop run` (network capture modes, OTLP, labels), orienting with `hiloop runs` (list /
+  show / tail / complete), querying with read-only
   SQL over the `events` table and registered views (`hiloop query`, pragmatic flags or `--sql`),
-  following a run live with `hiloop runs tail`, scoping to a branch by `lineage_path`, fetching
-  raw payload bytes with `hiloop events payload`, and diffing two runs. Use when asked to capture /
-  observe / trace an agent run, query telemetry or LLM calls, compute token metrics, scope to a
-  branch, follow a run live, or compare what two runs did.
+  following a run live with `hiloop runs tail`, filtering related runs by `root_run_id` or
+  `lineage_path`, and fetching raw payload bytes with `hiloop events payload`. Use when asked to
+  capture / observe / trace an agent run, query telemetry or LLM calls, compute token metrics,
+  follow a run live, or compare related runs.
 ---
 
-# Querying observability trees
+# Querying observability
 
-hiloop telemetry is **tree-native**: every event is keyed by its position in the run-lineage tree
-(`lineage_path`), so related runs read as one tree. You capture a run, then read it back at three
-altitudes: **orient** (`hiloop runs list` / `show`), **query** (read-only SQL with
+Capture a run, then read its telemetry back at three altitudes: **orient** (`hiloop runs list` /
+`show`), **query** (read-only SQL with
 `hiloop query`), and **watch** (`hiloop runs tail`).
 
 ## 1. Capture a run
@@ -76,18 +75,18 @@ hiloop sandbox exec demo -- sh -lc 'printf "hello from sandbox\n"'
 hiloop query --run-id "$run_id" --signal log
 ```
 
-## 2. Orient: list, scope to a tree, transcript
+## 2. Orient: list, filter related runs, transcript
 
-`hiloop runs` is the orientation group — find a run, see its branches, read what it did:
+`hiloop runs` is the orientation group — find a run and read what it did:
 
 ```sh
 hiloop runs list --project default     # in-flight first; --status/--since/--label/--principal narrow
-hiloop runs list --root-run-id 01K6Z…  # just the runs in one tree, by the tree's root_run_id
+hiloop runs list --root-run-id 01K6Z…  # runs related by the same root_run_id
 hiloop runs show 01K70…                # one run's full event transcript, in time order
 ```
 
-Every run in a tree carries the same `root_run_id`, so `runs list --root-run-id <id>` is the whole
-lineage as a flat listing. To put each branch's own numbers beside it (the latest annotation of a
+Related runs carry the same `root_run_id`, so `runs list --root-run-id <id>` returns them as a flat
+listing. To put each run's own numbers beside it (the latest annotation of a
 registered schema, a token or cost rollup), query for them instead: the `ann_<schema>` views take
 the same `root_run_id` scoping (§8), and the `events` table groups by `lineage_path` (§4).
 `runs show --output json` prints `{run, events}` — the run record plus the canonical event stream,
@@ -114,8 +113,8 @@ default set (event id, time, signal, name, run identity, principal, payload size
 table; pass `--output json` for the raw rows (always full; table cells truncate — tune with
 `--max-cell-width`, `0` to disable).
 
-Your **identity scopes the query to your tenant automatically**, so the SQL never names a tenant —
-and can't reach another one. Annotation rows additionally read per project: select one
+Your **identity scopes the query to your organization automatically**, so the SQL never names an
+organization — and can't reach another one. Annotation rows additionally read per project: select one
 (`--project` > `HILOOP_PROJECT` > the context's project) to see its annotations — including
 project-scoped ones — or filter `project_id = '<id>'` in the SQL itself.
 
@@ -142,11 +141,11 @@ hand-writing a complex query.
 > Not sure which columns exist? Run `hiloop query --run-id 01K6Z… --fields '*' --limit 5 --output json`
 > and read the keys off the rows; every column is in the reference.
 
-## 5. Walk the tree: scope to one branch
+## 5. Filter related runs by lineage
 
-Every descendant run shares its parent's `lineage_path` prefix, so a prefix predicate scopes a
-query to a whole subtree (the run *and* its descendant runs). Lineage is logical — it records
-which run descends from which, whatever mechanism created the child:
+When related runs carry lineage, every descendant shares its parent's `lineage_path` prefix. A
+prefix predicate filters the parent and its descendants. Lineage is logical metadata; it does not
+imply that the runs share filesystem state:
 
 ```sh
 hiloop query --sql "
@@ -158,8 +157,8 @@ hiloop query --sql "
   ORDER BY ts_wall_ns"
 ```
 
-This is how you "walk the tree": scope by `root_run_id` for everything under one root, then add
-the `lineage_path` prefix to descend into a single branch.
+Use `root_run_id` for everything under one root, then add the `lineage_path` prefix to narrow the
+result.
 
 ## 6. Follow a run live: `runs tail`
 
@@ -182,42 +181,15 @@ hiloop events payload <event-id>
 A tail follows one run id, so point it at the root run to watch the root's own events, or at a
 child run's id to follow a single arm.
 
-## 7. Diff two runs: what did A do that B didn't?
-
-When two runs diverge from a shared starting point, a **diff** returns the events present in one
-but absent in the other — the exact set-difference of what one branch did and another didn't. It
-compares two **runs** (by run id) on a semantic key: signal, name, and attributes. From the CLI it
-is an anti-join through `hiloop query`:
-
-```sh
-hiloop query --sql "
-  SELECT a.event_id, a.ts_wall_ns, a.signal, a.name
-  FROM events a
-  LEFT JOIN events b
-    ON  b.run_id = '01K71…'
-    AND b.signal = a.signal
-    AND b.name = a.name
-    AND b.attributes_json = a.attributes_json
-  WHERE a.run_id = '01K70…'
-    AND a.signal = 'llm'
-    AND b.event_id IS NULL
-  ORDER BY a.ts_wall_ns"
-```
-
-Result: one row per event unique to run A. Swap the two run ids for the reverse. Use it to find the
-divergent decision, validate that a change had only its intended effect, or triage a regression
-against a known-good sibling. For aggregate comparisons across many branches (counts, percentiles,
-tokens), use a grouped query with a `lineage_path` breakdown (§4) instead of a set-difference diff.
-
-## 8. Filter on annotations
+## 7. Filter on annotations
 
 Annotations land in the **same `events` table** (signal `annotation`), and every registered
 annotation schema also gives you a typed view named `ann_<schema>` — the schema name lowercased,
 every non-alphanumeric character turned into `_` (schema `experiment.v1` → view
 `ann_experiment_v1`; `data-views list` shows the exact names) — whose columns are the fields you
 promoted, plus the run-lineage identity (`run_id`, `root_run_id`, `lineage_path`). Each view
-already returns the current annotation per anchor, so scoping one by `root_run_id` rolls a whole
-fan-out up in one query. "Show me only the good branches":
+already returns the current annotation per anchor, so scoping one by `root_run_id` compares related
+runs in one query. "Show me only the good runs":
 
 ```sh
 hiloop query --sql "
@@ -230,9 +202,9 @@ hiloop query --sql "
 Writing those annotations (run-, event-, range-, and project-scoped, plus the schemas that validate
 them) is the `annotating-runs` skill.
 
-## 9. Save a query as a data view
+## 8. Save a query as a data view
 
-A **data view** is a named, tenant-agnostic `SELECT` you can query like a table — for a derivation
+A **data view** is a named, organization-scoped `SELECT` you can query like a table — for a derivation
 you keep reusing (an LLM-exchange join, a metric series):
 
 ```sh
