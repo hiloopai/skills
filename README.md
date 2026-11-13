@@ -1,3 +1,9 @@
+> [!WARNING]
+> **Deprecated — this repository is archived.** These skills drive the `hiloop` CLI from
+> [hiloopai/cli](https://github.com/hiloopai/cli), which is no longer developed or released
+> (v0.18.1 was the final release), and the install command below no longer installs it. The skills
+> are kept for reference only and are unsupported.
+
 # hiloop skills
 
 Open-source [Agent Skills](https://agentskills.io) that teach AI coding agents to operate
